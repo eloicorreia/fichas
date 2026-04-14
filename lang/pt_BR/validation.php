@@ -1,0 +1,70 @@
+<?php
+
+return [
+
+    'accepted' => 'O campo :attribute deve ser aceito.',
+    'array' => 'O campo :attribute deve ser um array.',
+    'date' => 'O campo :attribute não é uma data válida.',
+    'date_format' => 'O campo :attribute não corresponde ao formato :format.',
+    'email' => 'O campo :attribute deve ser um endereço de e-mail válido.',
+    'in' => 'O campo :attribute selecionado é inválido.',
+    'integer' => 'O campo :attribute deve ser um número inteiro.',
+    'max' => [
+        'numeric' => 'O campo :attribute não pode ser maior que :max.',
+        'file' => 'O campo :attribute não pode ser maior que :max kilobytes.',
+        'string' => 'O campo :attribute não pode ter mais que :max caracteres.',
+        'array' => 'O campo :attribute não pode ter mais que :max itens.',
+    ],
+    'min' => [
+        'numeric' => 'O campo :attribute deve ser no mínimo :min.',
+        'file' => 'O campo :attribute deve ter no mínimo :min kilobytes.',
+        'string' => 'O campo :attribute deve ter no mínimo :min caracteres.',
+        'array' => 'O campo :attribute deve ter no mínimo :min itens.',
+    ],
+    'nullable' => 'O campo :attribute pode ser nulo.',
+    'required' => 'O campo :attribute é obrigatório.',
+    'size' => [
+        'numeric' => 'O campo :attribute deve ser :size.',
+        'file' => 'O campo :attribute deve ter :size kilobytes.',
+        'string' => 'O campo :attribute deve ter :size caracteres.',
+        'array' => 'O campo :attribute deve conter :size itens.',
+    ],
+    'string' => 'O campo :attribute deve ser um texto.',
+    'custom' => [
+        'cidade_casou' => [
+            'required' => 'A cidade em que casou é obrigatória.',
+            'regex' => 'Selecione uma cidade válida da lista no formato Cidade/UF.',
+        ],
+    ],
+
+    'attributes' => [
+        'agree' => 'aceite',
+        'nome' => 'nome',
+        'data_nascimento' => 'data de nascimento',
+        'estado_civil' => 'estado civil',
+        'cpf' => 'cpf',
+        'data_casamento' => 'data do casamento',
+        'cidade_casou' => 'cidade que casou',
+        'igreja_casou' => 'igreja em que casou',
+        'nome_mae' => 'nome da mãe',
+        'numero_filhos' => 'número de filhos',
+        'profissao' => 'profissão',
+        'telefone' => 'telefone',
+        'email' => 'e-mail',
+        'grau_instrucao' => 'grau de instrução',
+        'cep' => 'cep',
+        'endereco' => 'endereço',
+        'bairro' => 'bairro',
+        'cidade' => 'cidade',
+        'estado' => 'estado',
+        'sacramentos' => 'sacramentos',
+        'participa_igreja' => 'participa da igreja',
+        'paroquia' => 'paróquia',
+        'participa_pastoral' => 'participa de alguma pastoral',
+        'quais_pastorais' => 'quais pastorais',
+        'contato_familia_missa' => 'contato da família para a missa de encerramento',
+        'alimentacao_especial' => 'alimentação especial',
+        'padrinho_madrinha_contato' => 'dados do padrinho ou madrinha',
+    ],
+
+];
