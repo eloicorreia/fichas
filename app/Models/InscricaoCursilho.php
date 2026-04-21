@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InscricaoCursilho extends Model
 {
@@ -78,5 +79,10 @@ class InscricaoCursilho extends Model
             self::STATUS_NEO,
             self::STATUS_CURSILHISTA,
         ];
+    }
+
+    public function evento(): BelongsTo
+    {
+        return $this->belongsTo(Evento::class, 'evento_id');
     }
 }

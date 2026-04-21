@@ -18,41 +18,53 @@ use Throwable;
 
 class EventoInscricaoController extends Controller
 {
-    public function index(): View
+    public function index()
     {
-        $q = trim((string) request('q', ''));
-        $eventoId = request('evento_id');
-        $status = trim((string) request('status', ''));
+        $search = request('search');
+        $sort = request('sort', 'id');
+        $direction = request('direction', 'desc');
 
-        $inscricoes = InscricaoCursilho::query()
-            ->with('evento:id,nome,numero')
-            ->when($q !== '', function ($query) use ($q): void {
-                $query->where(function ($subQuery) use ($q): void {
-                    $subQuery->where('nome', 'like', "%{$q}%")
-                        ->orWhere('cpf', 'like', "%{$q}%")
-                        ->orWhere('email', 'like', "%{$q}%")
-                        ->orWhere('telefone', 'like', "%{$q}%");
-                });
-            })
-            ->when($eventoId, function ($query) use ($eventoId): void {
-                $query->where('evento_id', $eventoId);
-            })
-            ->when($status !== '', function ($query) use ($status): void {
-                $query->where('status_ficha', $status);
-            })
-            ->orderByDesc('id')
-            ->paginate(20)
-            ->withQueryString();
+        $sortsPermitidos = [
+            'id',
+            'nome',
+            'email',
+            'telefone',
+            'evento',
+        ];
 
-        return view('secretaria.inscricoes.index', [
-            'inscricoes' => $inscricoes,
-            'evento' => null,
-            'eventos' => Evento::query()->orderByDesc('inicio_em')->get(['id', 'nome', 'numero']),
-            'q' => $q,
-            'eventoId' => $eventoId,
-            'status' => $status,
-            'statusDisponiveis' => InscricaoCursilho::getStatusDisponiveis(),
-        ]);
+        if (!in_array($sort, $sortsPermitidos, true)) {
+            $sort = 'id';
+        }
+
+        if (!in_array($direction, ['asc', 'desc'], true)) {
+            $direction = 'desc';
+        }
+
+        $query = \App\Models\InscricaoCursilho::query()
+            ->with('evento');
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nome', 'like', '%' . $search . '%')
+                    ->orWhere('email', 'like', '%' . $search . '%')
+                    ->orWhere('telefone', 'like', '%' . $search . '%')
+                    ->orWhereHas('evento', function ($eventoQuery) use ($search) {
+                        $eventoQuery->where('nome', 'like', '%' . $search . '%');
+                    });
+            });
+        }
+
+        if ($sort === 'evento') {
+            $query->leftJoin('eventos', 'eventos.id', '=', 'inscricoes_cursilho.evento_id')
+                ->select('inscricoes_cursilho.*')
+                ->orderBy('eventos.nome', $direction);
+        } else {
+            $query->orderBy($sort, $direction);
+        }
+
+        $inscricoes = $query->paginate(20)->withQueryString();
+
+        return view('secretaria.inscricoes.index', compact('inscricoes'));
     }
 
     public function indexByEvento(Evento $evento): View
