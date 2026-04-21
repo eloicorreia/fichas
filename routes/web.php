@@ -11,6 +11,7 @@ use App\Http\Controllers\Secretaria\PermissionController;
 use App\Http\Controllers\Secretaria\RoleController;
 use App\Http\Controllers\Secretaria\SecurityUserController;
 use App\Http\Controllers\Secretaria\UserRoleController;
+use App\Http\Controllers\Secretaria\RolePermissionController;
 
 Route::get('/fichas/autocomplete/municipios', [MunicipioController::class, 'autocomplete'])
     ->name('municipios.autocomplete');
@@ -179,6 +180,12 @@ Route::prefix('secretaria')->group(function () {
 
             Route::delete('/{role}', [RoleController::class, 'destroy'])
                 ->name('destroy');
+
+            Route::get('/{role}/permissoes', [RolePermissionController::class, 'edit'])
+                ->name('permissions.edit');
+
+            Route::put('/{role}/permissoes', [RolePermissionController::class, 'update'])
+                ->name('permissions.update');
         });
 
     Route::middleware(['auth', 'role:super-admin', 'permission:permission.view'])
@@ -198,7 +205,14 @@ Route::prefix('secretaria')->group(function () {
         ->name('secretaria.users.')
         ->group(function () {
             Route::get('/', [SecurityUserController::class, 'index'])->name('index');
-            Route::get('/{user}/papeis', [UserRoleController::class, 'edit'])->name('roles.edit');
-            Route::put('/{user}/papeis', [UserRoleController::class, 'update'])->name('roles.update');
-        });        
+
+            Route::middleware('permission:usuario.manage')->group(function () {
+                Route::get('/criar', [SecurityUserController::class, 'create'])->name('create');
+                Route::post('/', [SecurityUserController::class, 'store'])->name('store');
+                Route::get('/{user}/editar', [SecurityUserController::class, 'edit'])->name('edit');
+                Route::put('/{user}', [SecurityUserController::class, 'update'])->name('update');
+                Route::get('/{user}/papeis', [UserRoleController::class, 'edit'])->name('roles.edit');
+                Route::put('/{user}/papeis', [UserRoleController::class, 'update'])->name('roles.update');
+            });
+        });      
 });    

@@ -18,15 +18,59 @@ class PermissionController extends Controller
 {
     public function index(): View
     {
+        $q = trim((string) request('q', ''));
+        $status = request('status');
+        $module = trim((string) request('module', ''));
+        $sort = (string) request('sort', 'module');
+        $dir = strtolower((string) request('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $allowedSorts = [
+            'name',
+            'label',
+            'module',
+            'active',
+            'roles_count',
+        ];
+
+        if (!in_array($sort, $allowedSorts, true)) {
+            $sort = 'module';
+        }
+
         $permissions = Permission::query()
             ->withCount('roles')
-            ->orderBy('module')
-            ->orderBy('name')
+            ->when($q !== '', function ($query) use ($q): void {
+                $query->where(function ($subQuery) use ($q): void {
+                    $subQuery->where('name', 'like', "%{$q}%")
+                        ->orWhere('label', 'like', "%{$q}%")
+                        ->orWhere('module', 'like', "%{$q}%");
+                });
+            })
+            ->when($status !== null && $status !== '', function ($query) use ($status): void {
+                $query->where('active', (bool) $status);
+            })
+            ->when($module !== '', function ($query) use ($module): void {
+                $query->where('module', $module);
+            })
+            ->orderBy($sort, $dir)
+            ->orderBy('id')
             ->paginate(20)
             ->withQueryString();
 
+        $modules = Permission::query()
+            ->select('module')
+            ->whereNotNull('module')
+            ->distinct()
+            ->orderBy('module')
+            ->pluck('module');
+
         return view('secretaria.permissions.index', [
             'permissions' => $permissions,
+            'modules' => $modules,
+            'q' => $q,
+            'status' => $status,
+            'module' => $module,
+            'sort' => $sort,
+            'dir' => $dir,
         ]);
     }
 

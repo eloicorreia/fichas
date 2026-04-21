@@ -16,16 +16,48 @@ use Throwable;
 
 class RoleController extends Controller
 {
+
     public function index(): View
     {
+        $q = trim((string) request('q', ''));
+        $status = request('status');
+        $sort = (string) request('sort', 'name');
+        $dir = strtolower((string) request('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $allowedSorts = [
+            'name',
+            'label',
+            'active',
+            'users_count',
+            'permissions_count',
+        ];
+
+        if (!in_array($sort, $allowedSorts, true)) {
+            $sort = 'name';
+        }
+
         $roles = Role::query()
             ->withCount(['users', 'permissions'])
-            ->orderBy('name')
+            ->when($q !== '', function ($query) use ($q): void {
+                $query->where(function ($subQuery) use ($q): void {
+                    $subQuery->where('name', 'like', "%{$q}%")
+                        ->orWhere('label', 'like', "%{$q}%");
+                });
+            })
+            ->when($status !== null && $status !== '', function ($query) use ($status): void {
+                $query->where('active', (bool) $status);
+            })
+            ->orderBy($sort, $dir)
+            ->orderBy('id')
             ->paginate(15)
             ->withQueryString();
 
         return view('secretaria.roles.index', [
             'roles' => $roles,
+            'q' => $q,
+            'status' => $status,
+            'sort' => $sort,
+            'dir' => $dir,
         ]);
     }
 

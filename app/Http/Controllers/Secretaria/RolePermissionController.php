@@ -16,6 +16,9 @@ use Throwable;
 
 class RolePermissionController extends Controller
 {
+    /**
+     * Exibe a tela de associação de permissões ao papel.
+     */
     public function edit(Role $role): View
     {
         $role->load('permissions:id');
@@ -34,6 +37,9 @@ class RolePermissionController extends Controller
         ]);
     }
 
+    /**
+     * Atualiza as permissões associadas ao papel.
+     */
     public function update(UpdateRolePermissionsRequest $request, Role $role): RedirectResponse
     {
         $permissionIds = $request->validated('permissions') ?? [];
