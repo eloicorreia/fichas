@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Fichas\CursilhoController;
 use App\Http\Controllers\Fichas\AssembleiaController;
 use App\Http\Controllers\Cadastros\MunicipioController;
+use App\Http\Controllers\Secretaria\Auth\LoginController;
+use App\Http\Controllers\Secretaria\DashboardController;
 
 Route::get('/fichas/autocomplete/municipios', [MunicipioController::class, 'autocomplete'])
     ->name('municipios.autocomplete');
@@ -108,3 +110,26 @@ Route::prefix('/fichas/assembleia')
                     ->name('assembleia.finalizado');
             });
     });
+
+Route::prefix('secretaria')->group(function () {
+    Route::get('/login', [LoginController::class, 'create'])
+        ->name('secretaria.login');
+
+    Route::post('/login', [LoginController::class, 'store'])
+        ->name('secretaria.login.attempt');
+
+    Route::get('/esqueci-minha-senha', [LoginController::class, 'forgotPassword'])
+        ->name('secretaria.password.request');
+
+    Route::post('/esqueci-minha-senha', [LoginController::class, 'sendResetLink'])
+        ->name('secretaria.password.email');
+
+    Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:dashboard.view'])
+        ->group(function () {
+            Route::get('/dashboard', [DashboardController::class, 'index'])
+                ->name('secretaria.dashboard');
+
+            Route::post('/logout', [LoginController::class, 'destroy'])
+                ->name('secretaria.logout');
+        });
+});    
