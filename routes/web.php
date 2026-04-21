@@ -6,6 +6,7 @@ use App\Http\Controllers\Fichas\AssembleiaController;
 use App\Http\Controllers\Cadastros\MunicipioController;
 use App\Http\Controllers\Secretaria\Auth\LoginController;
 use App\Http\Controllers\Secretaria\DashboardController;
+use App\Http\Controllers\Secretaria\EventoController;
 
 Route::get('/fichas/autocomplete/municipios', [MunicipioController::class, 'autocomplete'])
     ->name('municipios.autocomplete');
@@ -132,4 +133,68 @@ Route::prefix('secretaria')->group(function () {
             Route::post('/logout', [LoginController::class, 'destroy'])
                 ->name('secretaria.logout');
         });
+
+    Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:eventos.manage'])
+        ->prefix('eventos')
+        ->name('secretaria.eventos.')
+        ->group(function () {
+            Route::get('/', [EventoController::class, 'index'])
+                ->name('index');
+
+            Route::get('/criar', [EventoController::class, 'create'])
+                ->name('create');
+
+            Route::post('/', [EventoController::class, 'store'])
+                ->name('store');
+
+            Route::get('/{evento}/editar', [EventoController::class, 'edit'])
+                ->name('edit');
+
+            Route::put('/{evento}', [EventoController::class, 'update'])
+                ->name('update');
+        });
+
+    Route::middleware(['auth', 'role:super-admin', 'permission:roles.manage'])
+        ->prefix('roles')
+        ->name('secretaria.roles.')
+        ->group(function () {
+            Route::get('/', [RoleController::class, 'index'])
+                ->name('index');
+
+            Route::get('/criar', [RoleController::class, 'create'])
+                ->name('create');
+
+            Route::post('/', [RoleController::class, 'store'])
+                ->name('store');
+
+            Route::get('/{role}/editar', [RoleController::class, 'edit'])
+                ->name('edit');
+
+            Route::put('/{role}', [RoleController::class, 'update'])
+                ->name('update');
+
+            Route::delete('/{role}', [RoleController::class, 'destroy'])
+                ->name('destroy');
+        });
+
+    Route::middleware(['auth', 'role:super-admin', 'permission:permissions.manage'])
+        ->prefix('permissoes')
+        ->name('secretaria.permissions.')
+        ->group(function () {
+            Route::get('/', [PermissionController::class, 'index'])->name('index');
+            Route::get('/criar', [PermissionController::class, 'create'])->name('create');
+            Route::post('/', [PermissionController::class, 'store'])->name('store');
+            Route::get('/{permission}/editar', [PermissionController::class, 'edit'])->name('edit');
+            Route::put('/{permission}', [PermissionController::class, 'update'])->name('update');
+            Route::delete('/{permission}', [PermissionController::class, 'destroy'])->name('destroy');
+        });
+
+    Route::middleware(['auth', 'role:super-admin', 'permission:users.manage'])
+        ->prefix('usuarios')
+        ->name('secretaria.users.')
+        ->group(function () {
+            Route::get('/', [SecurityUserController::class, 'index'])->name('index');
+            Route::get('/{user}/papeis', [UserRoleController::class, 'edit'])->name('roles.edit');
+            Route::put('/{user}/papeis', [UserRoleController::class, 'update'])->name('roles.update');
+        });        
 });    

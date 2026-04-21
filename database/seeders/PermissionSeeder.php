@@ -1,18 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Collection;
-use RuntimeException;
 
 class PermissionSeeder extends Seeder
 {
     /**
-     * Executa o seeding das permissões iniciais e
-     * vincula as permissões aos papéis base do sistema.
+     * Executa o seeder de permissões e vínculos com papéis.
      */
     public function run(): void
     {
@@ -71,6 +70,30 @@ class PermissionSeeder extends Seeder
                 'module' => 'usuario',
                 'active' => true,
             ],
+            [
+                'name' => 'role.view',
+                'label' => 'Visualizar papéis',
+                'module' => 'role',
+                'active' => true,
+            ],
+            [
+                'name' => 'role.manage',
+                'label' => 'Gerenciar papéis',
+                'module' => 'role',
+                'active' => true,
+            ],
+            [
+                'name' => 'permission.view',
+                'label' => 'Visualizar permissões',
+                'module' => 'permission',
+                'active' => true,
+            ],
+            [
+                'name' => 'permission.manage',
+                'label' => 'Gerenciar permissões',
+                'module' => 'permission',
+                'active' => true,
+            ],
         ];
 
         foreach ($permissions as $permissionData) {
@@ -88,91 +111,67 @@ class PermissionSeeder extends Seeder
     }
 
     /**
-     * Sincroniza as permissões iniciais por papel.
+     * Sincroniza as permissões de cada papel do sistema.
      */
     private function syncRolePermissions(): void
     {
-        $superAdmin = $this->findRoleByName('super-admin');
-        $secretaria = $this->findRoleByName('secretaria');
-        $consulta = $this->findRoleByName('consulta');
-
-        $allPermissionIds = Permission::query()->pluck('id')->all();
-
-        $superAdmin->permissions()->sync($allPermissionIds);
-
-        $secretaria->permissions()->sync(
-            $this->findPermissionIdsByNames([
-                'dashboard.view',
-                'evento.view',
-                'evento.create',
-                'evento.update',
-                'inscricao.view',
-                'inscricao.review',
-                'usuario.view',
-            ])
-        );
-
-        $consulta->permissions()->sync(
-            $this->findPermissionIdsByNames([
-                'dashboard.view',
-                'evento.view',
-                'inscricao.view',
-                'usuario.view',
-            ])
-        );
-    }
-
-    /**
-     * Localiza um papel pelo nome.
-     */
-    private function findRoleByName(string $name): Role
-    {
-        $role = Role::query()
-            ->where('name', $name)
+        $superAdmin = Role::query()
+            ->where('name', 'super-admin')
             ->first();
 
-        if (!$role) {
-            throw new RuntimeException("Papel não encontrado para o seeder: {$name}");
+        $secretaria = Role::query()
+            ->where('name', 'secretaria')
+            ->first();
+
+        $consulta = Role::query()
+            ->where('name', 'consulta')
+            ->first();
+
+        if ($superAdmin) {
+            $allPermissionIds = Permission::query()
+                ->pluck('id')
+                ->all();
+
+            $superAdmin->permissions()->sync($allPermissionIds);
         }
 
-        return $role;
+        if ($secretaria) {
+            $secretaria->permissions()->sync(
+                $this->findPermissionIdsByNames([
+                    'dashboard.view',
+                    'evento.view',
+                    'evento.create',
+                    'evento.update',
+                    'inscricao.view',
+                    'inscricao.review',
+                    'usuario.view',
+                ])
+            );
+        }
+
+        if ($consulta) {
+            $consulta->permissions()->sync(
+                $this->findPermissionIdsByNames([
+                    'dashboard.view',
+                    'evento.view',
+                    'inscricao.view',
+                    'usuario.view',
+                ])
+            );
+        }
     }
 
     /**
-     * Localiza os IDs das permissões a partir dos nomes informados.
+     * Retorna os ids das permissões com base nos nomes informados.
      *
-     * @param array<int, string> $names
+     * @param array<int, string> $permissionNames
      * @return array<int, int>
      */
-    private function findPermissionIdsByNames(array $names): array
+    private function findPermissionIdsByNames(array $permissionNames): array
     {
-        $permissions = Permission::query()
-            ->whereIn('name', $names)
-            ->pluck('id', 'name');
-
-        $this->assertAllPermissionsWereFound($permissions, $names);
-
-        return $permissions->values()->all();
-    }
-
-    /**
-     * Garante que todas as permissões esperadas foram localizadas.
-     *
-     * @param Collection<string, int> $permissions
-     * @param array<int, string> $expectedNames
-     */
-    private function assertAllPermissionsWereFound(Collection $permissions, array $expectedNames): void
-    {
-        $foundNames = $permissions->keys()->all();
-
-        $missingNames = array_values(array_diff($expectedNames, $foundNames));
-
-        if ($missingNames === []) {
-            return;
-        }
-
-        throw new RuntimeException(
-            'Permissões não encontradas para o seeder: '.implode(', ', $missingNames)
-        );
+        return Permission::query()
+            ->whereIn('name', $permissionNames)
+            ->pluck('id')
+            ->all();
     }
 }

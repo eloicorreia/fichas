@@ -9,20 +9,23 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
+        html,
         body {
-            min-height: 100vh;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
             background-color: #f8fafc;
         }
     </style>
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-800 antialiased">
-    <div class="min-h-screen lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside class="border-r border-slate-200 bg-slate-900 text-white">
+<body class="h-screen bg-slate-50 text-slate-800 antialiased">
+    <div class="h-screen overflow-hidden lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside class="h-screen overflow-hidden border-r border-slate-200 bg-slate-900 text-white">
             @include('partials.sidebar')
         </aside>
 
-        <div class="min-w-0">
-            <header class="border-b border-slate-200 bg-white">
+        <div class="flex min-h-0 min-w-0 flex-col overflow-hidden">
+            <header class="shrink-0 border-b border-slate-200 bg-white">
                 <div class="flex items-center justify-between gap-4 px-6 py-4 lg:px-8">
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">
@@ -44,7 +47,7 @@
                 </div>
             </header>
 
-            <main class="px-6 py-6 lg:px-8">
+            <main class="min-h-0 flex-1 overflow-y-auto px-6 py-6 lg:px-8">
                 @if (session('status'))
                     <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                         {{ session('status') }}

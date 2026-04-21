@@ -14,12 +14,11 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        $adminEmail = env('ADMIN_USER_EMAIL');
+        $adminEmail = env('ADMIN_USER_EMAIL', 'eloi.correia@gmail.com');
 
         if (!is_string($adminEmail) || trim($adminEmail) === '') {
             throw new RuntimeException(
-                'A variável ADMIN_USER_EMAIL não foi definida. '
-                .'Configure o e-mail do usuário administrador no arquivo .env.'
+                'O e-mail do usuário administrador não foi definido corretamente.'
             );
         }
 
