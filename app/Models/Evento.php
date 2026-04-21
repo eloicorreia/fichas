@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Evento extends Model
 {
@@ -103,5 +104,13 @@ class Evento extends Model
             self::STATUS_ABERTO,
             self::STATUS_FECHADO,
         ];
+    }
+
+    /**
+     * Retorna as inscrições vinculadas ao evento.
+     */
+    public function inscricoes(): HasMany
+    {
+        return $this->hasMany(InscricaoCursilho::class, 'evento_id');
     }
 }
