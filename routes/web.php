@@ -12,6 +12,8 @@ use App\Http\Controllers\Secretaria\RoleController;
 use App\Http\Controllers\Secretaria\SecurityUserController;
 use App\Http\Controllers\Secretaria\UserRoleController;
 use App\Http\Controllers\Secretaria\RolePermissionController;
+use App\Http\Controllers\Secretaria\EventoInscricaoController;
+
 
 Route::get('/fichas/autocomplete/municipios', [MunicipioController::class, 'autocomplete'])
     ->name('municipios.autocomplete');
@@ -215,4 +217,25 @@ Route::prefix('secretaria')->group(function () {
                 Route::put('/{user}/papeis', [UserRoleController::class, 'update'])->name('roles.update');
             });
         });      
+
+    Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:inscricao.view'])
+        ->prefix('inscricoes')
+        ->name('secretaria.inscricoes.')
+        ->group(function () {
+            Route::get('/', [EventoInscricaoController::class, 'index'])->name('index');
+        });
+
+    Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:inscricao.view'])
+        ->prefix('eventos/{evento}/inscricoes')
+        ->name('secretaria.eventos.inscricoes.')
+        ->group(function () {
+            Route::get('/', [EventoInscricaoController::class, 'indexByEvento'])->name('index');
+
+            Route::middleware('permission:inscricao.review')->group(function () {
+                Route::get('/criar', [EventoInscricaoController::class, 'create'])->name('create');
+                Route::post('/', [EventoInscricaoController::class, 'store'])->name('store');
+                Route::get('/{inscricao}/editar', [EventoInscricaoController::class, 'edit'])->name('edit');
+                Route::put('/{inscricao}', [EventoInscricaoController::class, 'update'])->name('update');
+            });
+        });
 });    

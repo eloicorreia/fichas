@@ -9,3 +9,37 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+@import 'trix/dist/trix.css';
+
+/* Ajustes visuais do editor para combinar com o painel */
+trix-toolbar .trix-button-group {
+    border-color: rgb(203 213 225);
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+trix-toolbar .trix-button {
+    background: white;
+    border-color: rgb(203 213 225);
+}
+
+trix-toolbar .trix-button.trix-active {
+    background: rgb(224 242 254);
+    color: rgb(3 105 161);
+}
+
+trix-editor {
+    min-height: 220px;
+    border: 1px solid rgb(203 213 225);
+    border-radius: 1rem;
+    padding: 0.875rem 1rem;
+    background: white;
+    color: rgb(30 41 59);
+}
+
+trix-editor:focus {
+    outline: none;
+    border-color: rgb(56 189 248);
+    box-shadow: 0 0 0 2px rgb(224 242 254);
+}

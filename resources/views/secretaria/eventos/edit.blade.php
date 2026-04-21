@@ -21,7 +21,6 @@
         <form method="POST" action="{{ route('secretaria.eventos.update', $evento) }}">
             @csrf
             @method('PUT')
-
             @include('secretaria.eventos._form')
         </form>
     </section>
