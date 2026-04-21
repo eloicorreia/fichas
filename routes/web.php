@@ -7,6 +7,10 @@ use App\Http\Controllers\Cadastros\MunicipioController;
 use App\Http\Controllers\Secretaria\Auth\LoginController;
 use App\Http\Controllers\Secretaria\DashboardController;
 use App\Http\Controllers\Secretaria\EventoController;
+use App\Http\Controllers\Secretaria\PermissionController;
+use App\Http\Controllers\Secretaria\RoleController;
+use App\Http\Controllers\Secretaria\SecurityUserController;
+use App\Http\Controllers\Secretaria\UserRoleController;
 
 Route::get('/fichas/autocomplete/municipios', [MunicipioController::class, 'autocomplete'])
     ->name('municipios.autocomplete');
@@ -134,7 +138,7 @@ Route::prefix('secretaria')->group(function () {
                 ->name('secretaria.logout');
         });
 
-    Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:eventos.manage'])
+    Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:evento.view'])
         ->prefix('eventos')
         ->name('secretaria.eventos.')
         ->group(function () {
@@ -154,7 +158,7 @@ Route::prefix('secretaria')->group(function () {
                 ->name('update');
         });
 
-    Route::middleware(['auth', 'role:super-admin', 'permission:roles.manage'])
+    Route::middleware(['auth', 'role:super-admin', 'permission:role.view'])
         ->prefix('roles')
         ->name('secretaria.roles.')
         ->group(function () {
@@ -177,7 +181,7 @@ Route::prefix('secretaria')->group(function () {
                 ->name('destroy');
         });
 
-    Route::middleware(['auth', 'role:super-admin', 'permission:permissions.manage'])
+    Route::middleware(['auth', 'role:super-admin', 'permission:permission.view'])
         ->prefix('permissoes')
         ->name('secretaria.permissions.')
         ->group(function () {
@@ -189,7 +193,7 @@ Route::prefix('secretaria')->group(function () {
             Route::delete('/{permission}', [PermissionController::class, 'destroy'])->name('destroy');
         });
 
-    Route::middleware(['auth', 'role:super-admin', 'permission:users.manage'])
+    Route::middleware(['auth', 'role:super-admin', 'permission:usuario.view'])
         ->prefix('usuarios')
         ->name('secretaria.users.')
         ->group(function () {
