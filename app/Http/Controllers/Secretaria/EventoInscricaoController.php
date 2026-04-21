@@ -21,6 +21,7 @@ class EventoInscricaoController extends Controller
     public function index()
     {
         $search = request('search');
+        $eventoId = request('evento_id');
         $sort = request('sort', 'id');
         $direction = request('direction', 'desc');
 
@@ -29,21 +30,20 @@ class EventoInscricaoController extends Controller
             'nome',
             'email',
             'telefone',
-            'evento',
         ];
 
-        if (!in_array($sort, $sortsPermitidos, true)) {
+        if (! in_array($sort, $sortsPermitidos, true)) {
             $sort = 'id';
         }
 
-        if (!in_array($direction, ['asc', 'desc'], true)) {
+        if (! in_array($direction, ['asc', 'desc'], true)) {
             $direction = 'desc';
         }
 
         $query = \App\Models\InscricaoCursilho::query()
             ->with('evento');
 
-        if (!empty($search)) {
+        if (! empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('nome', 'like', '%' . $search . '%')
                     ->orWhere('email', 'like', '%' . $search . '%')
@@ -54,17 +54,19 @@ class EventoInscricaoController extends Controller
             });
         }
 
-        if ($sort === 'evento') {
-            $query->leftJoin('eventos', 'eventos.id', '=', 'inscricoes_cursilho.evento_id')
-                ->select('inscricoes_cursilho.*')
-                ->orderBy('eventos.nome', $direction);
-        } else {
-            $query->orderBy($sort, $direction);
+        if (! empty($eventoId)) {
+            $query->where('evento_id', $eventoId);
         }
+
+        $query->orderBy($sort, $direction);
 
         $inscricoes = $query->paginate(20)->withQueryString();
 
-        return view('secretaria.inscricoes.index', compact('inscricoes'));
+        $eventos = \App\Models\Evento::query()
+            ->orderBy('nome')
+            ->get(['id', 'nome']);
+
+        return view('secretaria.inscricoes.index', compact('inscricoes', 'eventos'));
     }
 
     public function indexByEvento(Evento $evento): View
