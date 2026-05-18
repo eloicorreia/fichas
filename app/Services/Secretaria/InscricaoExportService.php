@@ -43,21 +43,21 @@ class InscricaoExportService
 
             foreach ($inscricoes as $inscricao) {
                 fputcsv($handle, [
-                    $inscricao->evento_label,
-                    $inscricao->nome,
-                    $inscricao->cpf,
-                    $inscricao->telefone_formatado,
-                    $inscricao->email,
-                    $inscricao->status_ficha,
-                    $inscricao->pagamento_status,
-                    optional($inscricao->data_nascimento)?->format('d/m/Y'),
-                    $inscricao->estado_civil,
-                    $inscricao->profissao,
-                    $inscricao->cidade,
-                    $inscricao->estado,
-                    $inscricao->paroquia,
-                    $inscricao->participa_pastoral,
-                    optional($inscricao->finalizada_em)?->format('d/m/Y H:i'),
+                    $this->escapeCsvValue($inscricao->evento_label),
+                    $this->escapeCsvValue($inscricao->nome),
+                    $this->escapeCsvValue($inscricao->cpf),
+                    $this->escapeCsvValue($inscricao->telefone_formatado),
+                    $this->escapeCsvValue($inscricao->email),
+                    $this->escapeCsvValue($inscricao->status_ficha),
+                    $this->escapeCsvValue($inscricao->pagamento_status),
+                    $this->escapeCsvValue(optional($inscricao->data_nascimento)?->format('d/m/Y')),
+                    $this->escapeCsvValue($inscricao->estado_civil),
+                    $this->escapeCsvValue($inscricao->profissao),
+                    $this->escapeCsvValue($inscricao->cidade),
+                    $this->escapeCsvValue($inscricao->estado),
+                    $this->escapeCsvValue($inscricao->paroquia),
+                    $this->escapeCsvValue($inscricao->participa_pastoral),
+                    $this->escapeCsvValue(optional($inscricao->finalizada_em)?->format('d/m/Y H:i')),
                 ], ';');
             }
 
@@ -65,5 +65,16 @@ class InscricaoExportService
         }, $filename, [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
+    }
+
+    private function escapeCsvValue(mixed $value): string
+    {
+        $value = (string) ($value ?? '');
+
+        if ($value !== '' && preg_match('/^[=+\-@\t\r\n]/', $value) === 1) {
+            return "'".$value;
+        }
+
+        return $value;
     }
 }

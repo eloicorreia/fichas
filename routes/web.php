@@ -235,9 +235,12 @@ Route::prefix('secretaria')->group(function () {
                 ->middleware('permission:inscricao.export')
                 ->name('export');
 
-            Route::middleware('permission:inscricao.review')->group(function () {
+            Route::middleware('permission:inscricao.create,inscricao.review')->group(function () {
                 Route::get('/criar', [EventoInscricaoController::class, 'create'])->name('create');
                 Route::post('/', [EventoInscricaoController::class, 'store'])->name('store');
+            });
+
+            Route::middleware('permission:inscricao.update,inscricao.review')->group(function () {
                 Route::get('/{inscricao}/editar', [EventoInscricaoController::class, 'edit'])->name('edit');
                 Route::put('/{inscricao}', [EventoInscricaoController::class, 'update'])->name('update');
             });

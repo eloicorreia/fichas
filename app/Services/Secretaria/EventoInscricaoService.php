@@ -6,6 +6,7 @@ namespace App\Services\Secretaria;
 
 use App\Models\Evento;
 use App\Models\InscricaoCursilho;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class EventoInscricaoService
@@ -44,16 +45,31 @@ class EventoInscricaoService
         }
 
         if ($inscricao->pagamento_confirmado) {
+            Log::warning('Exclusão de inscrição bloqueada por pagamento confirmado.', [
+                'evento_id' => $evento->id,
+                'inscricao_id' => $inscricao->id,
+            ]);
+
             throw ValidationException::withMessages([
                 'inscricao' => 'Não é possível excluir uma inscrição com pagamento confirmado.',
             ]);
         }
 
         if ($inscricao->finalizada_em !== null) {
+            Log::warning('Exclusão de inscrição bloqueada por ficha finalizada.', [
+                'evento_id' => $evento->id,
+                'inscricao_id' => $inscricao->id,
+            ]);
+
             throw ValidationException::withMessages([
                 'inscricao' => 'Não é possível excluir uma inscrição finalizada.',
             ]);
         }
+
+        Log::notice('Inscrição autorizada para exclusão física.', [
+            'evento_id' => $evento->id,
+            'inscricao_id' => $inscricao->id,
+        ]);
 
         $inscricao->delete();
     }

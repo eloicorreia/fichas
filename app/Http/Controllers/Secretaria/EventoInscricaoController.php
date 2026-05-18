@@ -56,8 +56,13 @@ class EventoInscricaoController extends Controller
     ): StreamedResponse {
         $filters = $queryService->resolveFilters($request);
 
+        Log::info('Exportação global de inscrições solicitada.', [
+            'user_id' => $request->user()?->id,
+            'filters' => $filters,
+        ]);
+
         return $exportService->download(
-            $queryService->build($filters)->cursor(),
+            $queryService->build($filters)->lazy(500),
             'inscricoes_'.now()->format('Ymd_His').'.csv'
         );
     }
@@ -71,8 +76,14 @@ class EventoInscricaoController extends Controller
         $filters = $queryService->resolveFilters($request);
         $filters['eventoId'] = (string) $evento->id;
 
+        Log::info('Exportação de inscrições por evento solicitada.', [
+            'user_id' => $request->user()?->id,
+            'evento_id' => $evento->id,
+            'filters' => $filters,
+        ]);
+
         return $exportService->download(
-            $queryService->build($filters)->cursor(),
+            $queryService->build($filters)->lazy(500),
             'inscricoes_'.now()->format('Ymd_His').'.csv'
         );
     }

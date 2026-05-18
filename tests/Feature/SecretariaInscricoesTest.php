@@ -10,7 +10,9 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
+use Mockery;
 use Tests\TestCase;
 
 class SecretariaInscricoesTest extends TestCase
@@ -130,6 +132,24 @@ class SecretariaInscricoesTest extends TestCase
         $this->assertStringNotContainsString('Nao Exportar Pendente', $content);
     }
 
+    public function test_exportacao_registra_log_especifico(): void
+    {
+        Log::spy();
+
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.export']);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.inscricoes.export'))
+            ->assertOk();
+
+        Log::shouldHaveReceived('info')
+            ->with('Exportação global de inscrições solicitada.', Mockery::on(
+                fn (array $context): bool => $context['user_id'] === $user->id
+                    && array_key_exists('filters', $context)
+            ))
+            ->once();
+    }
+
     public function test_exportacao_por_evento_nao_exporta_inscricoes_de_outro_evento(): void
     {
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.export']);
@@ -158,6 +178,59 @@ class SecretariaInscricoesTest extends TestCase
         $this->actingAs($user)
             ->get(route('secretaria.inscricoes.export'))
             ->assertForbidden();
+    }
+
+    public function test_botao_exportar_fica_oculto_sem_permissao_de_exportacao(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view']);
+        $evento = $this->createEvento();
+
+        $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.inscricoes.index'))
+            ->assertOk()
+            ->assertDontSee('Exportar');
+    }
+
+    public function test_exportacao_protege_campos_contra_csv_injection(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.export']);
+        $evento = $this->createEvento();
+
+        $this->createInscricao($evento, [
+            'nome' => '=HYPERLINK("https://example.test")',
+            'email' => '+conta@example.test',
+        ]);
+
+        $content = $this->actingAs($user)
+            ->get(route('secretaria.inscricoes.export'))
+            ->assertOk()
+            ->streamedContent();
+
+        $this->assertStringContainsString('\'=HYPERLINK', $content);
+        $this->assertStringContainsString('\'+conta@example.test', $content);
+    }
+
+    public function test_inscricao_create_permite_criar_sem_inscricao_review(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.create']);
+        $evento = $this->createEvento();
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.create', $evento))
+            ->assertOk();
+    }
+
+    public function test_inscricao_update_permite_editar_sem_inscricao_review(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.update']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.edit', [$evento, $inscricao]))
+            ->assertOk();
     }
 
     public function test_usuario_sem_inscricao_delete_nao_consegue_excluir(): void
@@ -263,12 +336,14 @@ class SecretariaInscricoesTest extends TestCase
         ]);
 
         $permissionIds = collect($permissions)
-            ->map(fn (string $permission): int => Permission::query()->create([
-                'name' => $permission,
-                'label' => $permission,
-                'module' => 'inscricao',
-                'active' => true,
-            ])->id)
+            ->map(fn (string $permission): int => Permission::query()->updateOrCreate(
+                ['name' => $permission],
+                [
+                    'label' => $permission,
+                    'module' => 'inscricao',
+                    'active' => true,
+                ]
+            )->id)
             ->all();
 
         $role->permissions()->sync($permissionIds);

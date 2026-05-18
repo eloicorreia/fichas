@@ -73,12 +73,14 @@
                 </a>
             @endif
 
-            <a
-                href="{{ $exportRoute }}"
-                class="inline-flex items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
-            >
-                Exportar
-            </a>
+            @if (auth()->user()?->hasPermission('inscricao.export'))
+                <a
+                    href="{{ $exportRoute }}"
+                    class="inline-flex items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                >
+                    Exportar
+                </a>
+            @endif
         </div>
     </section>
 

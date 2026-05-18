@@ -14,11 +14,12 @@ class EnsureUserHasPermission
      *
      * Exemplo de uso:
      * - middleware('permission:evento.view')
+     * - middleware('permission:inscricao.create,inscricao.review')
      */
     public function handle(
         Request $request,
         Closure $next,
-        string $permission
+        string ...$permissions
     ): Response {
         $user = $request->user();
 
@@ -26,14 +27,18 @@ class EnsureUserHasPermission
             abort(401);
         }
 
-        if (blank($permission)) {
+        $permissions = array_filter($permissions, fn (string $permission): bool => filled($permission));
+
+        if ($permissions === []) {
             abort(500, 'Nenhuma permissão foi informada para o middleware de permission.');
         }
 
-        if (! $user->hasPermission($permission)) {
-            abort(403);
+        foreach ($permissions as $permission) {
+            if ($user->hasPermission($permission)) {
+                return $next($request);
+            }
         }
 
-        return $next($request);
+        abort(403);
     }
 }
