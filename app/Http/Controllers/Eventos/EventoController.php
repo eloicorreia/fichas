@@ -15,7 +15,7 @@ class EventoController extends Controller
         $query = Evento::query();
 
         if ($request->filled('nome')) {
-            $query->where('nome', 'like', '%' . trim((string) $request->string('nome')) . '%');
+            $query->where('nome', 'like', '%'.trim((string) $request->string('nome')).'%');
         }
 
         if ($request->filled('tipo_evento')) {

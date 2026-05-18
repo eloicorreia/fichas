@@ -48,10 +48,9 @@ class EventoMulheres109Seeder extends Seeder
 
                 'limite_inscricoes' => null,
 
-                'descricao_publica_curta' =>
-                    '109º Cursilho para Mulheres — GED Bauru, de 24 a 26 de abril de 2026.',
+                'descricao_publica_curta' => '109º Cursilho para Mulheres — GED Bauru, de 24 a 26 de abril de 2026.',
 
-                'orientacoes_participante' => <<<TEXT
+                'orientacoes_participante' => <<<'TEXT'
 Queridos irmãos e irmãs,
 
 Estamos nos preparando com muito carinho para vivermos juntos um momento muito especial de fé, oração e encontro com Deus.
@@ -70,10 +69,9 @@ semelhantes. Esse cuidado nos ajuda a viver mais intensamente cada momento, com 
 presença de Deus. Caso alguém precise entrar em contato, poderá ligar diretamente para a Casa de Cursilhos.
 TEXT,
 
-                'encerramento_info' =>
-                    'Saída no domingo, dia 26 de abril de 2026, às 17h00, com a Santa Missa.',
+                'encerramento_info' => 'Saída no domingo, dia 26 de abril de 2026, às 17h00, com a Santa Missa.',
 
-                'informacoes_finais' => <<<TEXT
+                'informacoes_finais' => <<<'TEXT'
 Para a realização do Cursilho, temos algumas despesas com alimentação, hospedagem, secretaria e materiais necessários.
 Por isso, pedimos uma contribuição de R$ 50,00, valor que ajuda a cobrir esses custos durante os dois dias de encontro.
 
@@ -93,8 +91,7 @@ Cristo, que nos chama, nos sustenta e nos conduz com infinita misericórdia.
 Esperamos você com alegria e muito carinho para vivermos juntos essa linda experiência de bênçãos e encontro com Deus.
 TEXT,
 
-                'observacoes_internas' =>
-                    'Seeder criado a partir das fichas públicas de inscrição e das telas de revisão/finalização do evento Mulheres 109.',
+                'observacoes_internas' => 'Seeder criado a partir das fichas públicas de inscrição e das telas de revisão/finalização do evento Mulheres 109.',
             ]
         );
     }

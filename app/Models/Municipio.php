@@ -20,6 +20,6 @@ class Municipio extends Model
 
     public function getDescricaoAttribute(): string
     {
-        return $this->nome_municipio . '/' . $this->uf;
+        return $this->nome_municipio.'/'.$this->uf;
     }
 }

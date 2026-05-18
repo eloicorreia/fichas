@@ -65,7 +65,7 @@ class CursilhoController extends Controller
             'homens' => Evento::PUBLICO_HOMENS,
             'mulheres' => Evento::PUBLICO_MULHERES,
             'jovens' => Evento::PUBLICO_JOVENS,
-            default => throw new NotFoundHttpException(),
+            default => throw new NotFoundHttpException,
         };
     }
 
@@ -134,7 +134,7 @@ class CursilhoController extends Controller
     ): ?RedirectResponse {
         $wizard = $this->getWizard($request, $publicoEvento, $numero);
 
-        if (!($wizard['steps']['start'] ?? false)) {
+        if (! ($wizard['steps']['start'] ?? false)) {
             return redirect($this->redirectToStart($publicoEvento, $numero));
         }
 
@@ -150,7 +150,7 @@ class CursilhoController extends Controller
 
         $prev = $step - 1;
 
-        if (!($wizard['steps']["step$prev"] ?? false)) {
+        if (! ($wizard['steps']["step$prev"] ?? false)) {
             return redirect($this->redirectToStep($publicoEvento, $numero, $prev));
         }
 
@@ -218,37 +218,37 @@ class CursilhoController extends Controller
 
     private function isWizardReadyForReview(array $wizard): bool
     {
-        if (!($wizard['started'] ?? false)) {
+        if (! ($wizard['started'] ?? false)) {
             return false;
         }
 
-        if (!($wizard['steps']['start'] ?? false)) {
+        if (! ($wizard['steps']['start'] ?? false)) {
             return false;
         }
 
-        if (!($wizard['steps']['step1'] ?? false)) {
+        if (! ($wizard['steps']['step1'] ?? false)) {
             return false;
         }
 
-        if (!($wizard['steps']['step2'] ?? false)) {
+        if (! ($wizard['steps']['step2'] ?? false)) {
             return false;
         }
 
-        if (!($wizard['steps']['step4'] ?? false)) {
+        if (! ($wizard['steps']['step4'] ?? false)) {
             return false;
         }
 
-        if (!($wizard['steps']['step6'] ?? false)) {
+        if (! ($wizard['steps']['step6'] ?? false)) {
             return false;
         }
 
-        if ($this->isCasado($wizard) && !($wizard['steps']['step3'] ?? false)) {
+        if ($this->isCasado($wizard) && ! ($wizard['steps']['step3'] ?? false)) {
             return false;
         }
 
         $participaIgreja = $wizard['data']['step4']['participa_igreja'] ?? null;
 
-        if ($participaIgreja === 'SIM' && !($wizard['steps']['step5'] ?? false)) {
+        if ($participaIgreja === 'SIM' && ! ($wizard['steps']['step5'] ?? false)) {
             return false;
         }
 
@@ -300,7 +300,7 @@ class CursilhoController extends Controller
             ]);
         }
 
-        if ($step === 3 && !$this->isCasado($wizard)) {
+        if ($step === 3 && ! $this->isCasado($wizard)) {
             return redirect($this->redirectToStep($publicoEvento, $numero, 4));
         }
 
@@ -344,7 +344,7 @@ class CursilhoController extends Controller
             ]);
         }
 
-        if ($step === 3 && !$this->isCasado($wizard)) {
+        if ($step === 3 && ! $this->isCasado($wizard)) {
             return redirect($this->redirectToStep($publicoEvento, $numero, 4));
         }
 
@@ -374,7 +374,7 @@ class CursilhoController extends Controller
         if ($step === 2) {
             $validated['nome'] = mb_strtoupper(trim((string) ($validated['nome'] ?? '')), 'UTF-8');
 
-            if (!$this->isValidDataNascimento($validated['data_nascimento'] ?? null)) {
+            if (! $this->isValidDataNascimento($validated['data_nascimento'] ?? null)) {
                 return back()
                     ->withErrors([
                         'data_nascimento' => 'A data de nascimento é inválida ou a idade não pode ser maior que 100 anos.',
@@ -384,7 +384,7 @@ class CursilhoController extends Controller
 
             $cpfDigits = preg_replace('/\D+/', '', $validated['cpf'] ?? '');
 
-            if (!$this->isValidCpf($cpfDigits)) {
+            if (! $this->isValidCpf($cpfDigits)) {
                 return back()
                     ->withErrors(['cpf' => 'CPF inválido.'])
                     ->withInput();
@@ -416,7 +416,7 @@ class CursilhoController extends Controller
             $dataNascimento = $wizard['data']['step2']['data_nascimento'] ?? null;
             $dataCasamento = $validated['data_casamento'] ?? null;
 
-            if (!$this->isDataPosterior($dataNascimento, $dataCasamento)) {
+            if (! $this->isDataPosterior($dataNascimento, $dataCasamento)) {
                 return back()
                     ->withErrors([
                         'data_casamento' => 'A data de casamento deve ser maior que a data de nascimento e menor que a data de hoje.',
@@ -550,7 +550,7 @@ class CursilhoController extends Controller
             ]);
         }
 
-        if (!$this->isWizardReadyForReview($wizard)) {
+        if (! $this->isWizardReadyForReview($wizard)) {
             return redirect($this->redirectToStep($publicoEvento, $numero, 1));
         }
 
@@ -576,7 +576,7 @@ class CursilhoController extends Controller
             ]);
         }
 
-        if (!$this->isWizardReadyForReview($wizard)) {
+        if (! $this->isWizardReadyForReview($wizard)) {
             return redirect($this->redirectToStep($publicoEvento, $numero, 1));
         }
 
@@ -683,10 +683,10 @@ class CursilhoController extends Controller
 
     private function formatCpf(string $cpfDigits): string
     {
-        return substr($cpfDigits, 0, 3) . '.'
-            . substr($cpfDigits, 3, 3) . '.'
-            . substr($cpfDigits, 6, 3) . '-'
-            . substr($cpfDigits, 9, 2);
+        return substr($cpfDigits, 0, 3).'.'
+            .substr($cpfDigits, 3, 3).'.'
+            .substr($cpfDigits, 6, 3).'-'
+            .substr($cpfDigits, 9, 2);
     }
 
     private function isCasado(array $wizard): bool
@@ -704,7 +704,7 @@ class CursilhoController extends Controller
 
         $dataNascimento = trim($dataNascimento);
 
-        if (!preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $dataNascimento)) {
+        if (! preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $dataNascimento)) {
             return false;
         }
 
@@ -734,11 +734,11 @@ class CursilhoController extends Controller
         $dataInicial = trim($dataInicial);
         $dataFinal = trim($dataFinal);
 
-        if (!preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $dataInicial)) {
+        if (! preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $dataInicial)) {
             return false;
         }
 
-        if (!preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $dataFinal)) {
+        if (! preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $dataFinal)) {
             return false;
         }
 
@@ -758,7 +758,7 @@ class CursilhoController extends Controller
             return false;
         }
 
-        if (!$fim->greaterThan($inicio)) {
+        if (! $fim->greaterThan($inicio)) {
             return false;
         }
 
@@ -796,7 +796,7 @@ class CursilhoController extends Controller
 
         $sacramentos = $step4['sacramentos'] ?? [];
 
-        if (!is_array($sacramentos)) {
+        if (! is_array($sacramentos)) {
             $sacramentos = [];
         }
 
@@ -863,7 +863,7 @@ class CursilhoController extends Controller
             return $cepDigits;
         }
 
-        return substr($cepDigits, 0, 5) . '-' . substr($cepDigits, 5, 3);
+        return substr($cepDigits, 0, 5).'-'.substr($cepDigits, 5, 3);
     }
 
     private function buildMailViewData(
@@ -878,7 +878,7 @@ class CursilhoController extends Controller
             'numero' => $numero,
             'inscricao' => $this->transformInscricaoForEmail($inscricao),
             'bannerPath' => public_path('assets/img/banner.jpg'),
-            'eventoImagePath' => public_path('assets/img/' . $numero . '.jpg'),
+            'eventoImagePath' => public_path('assets/img/'.$numero.'.jpg'),
             'pixPath' => public_path('assets/img/pix.png'),
         ];
     }

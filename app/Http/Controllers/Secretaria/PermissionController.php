@@ -32,7 +32,7 @@ class PermissionController extends Controller
             'roles_count',
         ];
 
-        if (!in_array($sort, $allowedSorts, true)) {
+        if (! in_array($sort, $allowedSorts, true)) {
             $sort = 'module';
         }
 
@@ -77,7 +77,7 @@ class PermissionController extends Controller
     public function create(): View
     {
         return view('secretaria.permissions.create', [
-            'permission' => new Permission(),
+            'permission' => new Permission,
         ]);
     }
 

@@ -24,7 +24,9 @@
         ? route('secretaria.eventos.inscricoes.index', $evento)
         : route('secretaria.inscricoes.index');
 
-    $exportRoute = route('secretaria.inscricoes.export', request()->query());
+    $exportRoute = $evento
+        ? route('secretaria.eventos.inscricoes.export', ['evento' => $evento] + request()->query())
+        : route('secretaria.inscricoes.export', request()->query());
 
     $makeSortUrl = function (string $column) {
         $query = request()->query();

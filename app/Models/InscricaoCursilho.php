@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class InscricaoCursilho extends Model
 {
     public const STATUS_CANDIDATO = 'CANDIDATO';
+
     public const STATUS_DESISTENTE = 'DESISTENTE';
+
     public const STATUS_NEO = 'NEO';
+
     public const STATUS_CURSILHISTA = 'CURSILHISTA';
 
     protected $table = 'inscricoes_cursilho';
@@ -88,13 +91,13 @@ class InscricaoCursilho extends Model
 
     public function getTelefoneFormatadoAttribute(): ?string
     {
-        if (!$this->telefone) {
+        if (! $this->telefone) {
             return null;
         }
 
         $digits = preg_replace('/\D+/', '', $this->telefone);
 
-        if (!is_string($digits) || $digits === '') {
+        if (! is_string($digits) || $digits === '') {
             return $this->telefone;
         }
 
@@ -126,14 +129,16 @@ class InscricaoCursilho extends Model
     {
         if ($this->evento) {
             if ($this->evento->numero) {
-                return $this->evento->numero . ' - ' . $this->evento->nome;
+                return $this->evento->numero.' - '.$this->evento->nome;
             }
 
             return $this->evento->nome;
         }
 
-        if ($this->numero_evento && $this->nome) {
-            return $this->numero_evento . ' - ' . ($this->tipo_evento ?? 'Evento');
+        if ($this->numero_evento || $this->tipo_evento) {
+            return collect([$this->numero_evento, $this->tipo_evento ?: 'Evento'])
+                ->filter()
+                ->implode(' - ');
         }
 
         return '-';

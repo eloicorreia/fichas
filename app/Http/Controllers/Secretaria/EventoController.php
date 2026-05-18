@@ -35,7 +35,7 @@ class EventoController extends Controller
             'inscricoes_count',
         ];
 
-        if (!in_array($sort, $allowedSorts, true)) {
+        if (! in_array($sort, $allowedSorts, true)) {
             $sort = 'inicio_em';
         }
 
@@ -73,7 +73,7 @@ class EventoController extends Controller
     public function create(): View
     {
         return view('secretaria.eventos.create', [
-            'evento' => new Evento(),
+            'evento' => new Evento,
             'tiposEvento' => Evento::getTiposEvento(),
             'publicosEvento' => Evento::getPublicosEvento(),
             'statusDisponiveis' => Evento::getStatusDisponiveis(),
@@ -192,7 +192,7 @@ class EventoController extends Controller
     /**
      * Sanitiza os campos HTML do evento antes de persistir.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     private function sanitizeHtmlFields(

@@ -189,9 +189,10 @@
             </div>
 
             <div class="lg:col-span-2">
-                <label class="mb-2 block text-sm font-semibold text-slate-700">Comprovante (base64)</label>
-                <textarea name="pagamento_comprovante_base64" rows="4"
-                    class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm">{{ old('pagamento_comprovante_base64', $inscricao->pagamento_comprovante_base64) }}</textarea>
+                <span class="mb-2 block text-sm font-semibold text-slate-700">Comprovante</span>
+                <p class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                    {{ filled($inscricao->pagamento_comprovante_base64) ? 'Comprovante anexado' : 'Nenhum comprovante anexado' }}
+                </p>
             </div>
         </div>
     </section>

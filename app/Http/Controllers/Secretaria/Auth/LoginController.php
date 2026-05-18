@@ -30,7 +30,7 @@ class LoginController extends Controller
 
         $remember = $request->boolean('remember');
 
-        if (!Auth::attempt($credentials, $remember)) {
+        if (! Auth::attempt($credentials, $remember)) {
             return back()
                 ->withErrors([
                     'email' => 'As credenciais informadas são inválidas.',

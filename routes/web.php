@@ -1,19 +1,18 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Fichas\CursilhoController;
-use App\Http\Controllers\Fichas\AssembleiaController;
 use App\Http\Controllers\Cadastros\MunicipioController;
+use App\Http\Controllers\Fichas\AssembleiaController;
+use App\Http\Controllers\Fichas\CursilhoController;
 use App\Http\Controllers\Secretaria\Auth\LoginController;
 use App\Http\Controllers\Secretaria\DashboardController;
 use App\Http\Controllers\Secretaria\EventoController;
+use App\Http\Controllers\Secretaria\EventoInscricaoController;
 use App\Http\Controllers\Secretaria\PermissionController;
 use App\Http\Controllers\Secretaria\RoleController;
+use App\Http\Controllers\Secretaria\RolePermissionController;
 use App\Http\Controllers\Secretaria\SecurityUserController;
 use App\Http\Controllers\Secretaria\UserRoleController;
-use App\Http\Controllers\Secretaria\RolePermissionController;
-use App\Http\Controllers\Secretaria\EventoInscricaoController;
-
+use Illuminate\Support\Facades\Route;
 
 Route::get('/fichas/autocomplete/municipios', [MunicipioController::class, 'autocomplete'])
     ->name('municipios.autocomplete');
@@ -33,7 +32,6 @@ Route::prefix('/fichas/cursilho/{publicoEvento}')
          */
         Route::get('/', [CursilhoController::class, 'startByPublico'])
             ->name('cursilho.start_by_publico');
-
 
         Route::get('/inscricaoconfirmada', [CursilhoController::class, 'inscricaoConfirmada'])
             ->name('cursilho.inscricaoconfirmada');
@@ -216,14 +214,16 @@ Route::prefix('secretaria')->group(function () {
                 Route::get('/{user}/papeis', [UserRoleController::class, 'edit'])->name('roles.edit');
                 Route::put('/{user}/papeis', [UserRoleController::class, 'update'])->name('roles.update');
             });
-        });      
+        });
 
     Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:inscricao.view'])
         ->prefix('inscricoes')
         ->name('secretaria.inscricoes.')
         ->group(function () {
             Route::get('/', [EventoInscricaoController::class, 'index'])->name('index');
-            Route::get('/exportar', [EventoInscricaoController::class, 'export'])->name('export');
+            Route::get('/exportar', [EventoInscricaoController::class, 'export'])
+                ->middleware('permission:inscricao.export')
+                ->name('export');
         });
 
     Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:inscricao.view'])
@@ -231,13 +231,19 @@ Route::prefix('secretaria')->group(function () {
         ->name('secretaria.eventos.inscricoes.')
         ->group(function () {
             Route::get('/', [EventoInscricaoController::class, 'indexByEvento'])->name('index');
+            Route::get('/exportar', [EventoInscricaoController::class, 'exportByEvento'])
+                ->middleware('permission:inscricao.export')
+                ->name('export');
 
             Route::middleware('permission:inscricao.review')->group(function () {
                 Route::get('/criar', [EventoInscricaoController::class, 'create'])->name('create');
                 Route::post('/', [EventoInscricaoController::class, 'store'])->name('store');
                 Route::get('/{inscricao}/editar', [EventoInscricaoController::class, 'edit'])->name('edit');
                 Route::put('/{inscricao}', [EventoInscricaoController::class, 'update'])->name('update');
-                Route::delete('/{inscricao}', [EventoInscricaoController::class, 'destroy'])->name('destroy');
             });
+
+            Route::delete('/{inscricao}', [EventoInscricaoController::class, 'destroy'])
+                ->middleware('permission:inscricao.delete')
+                ->name('destroy');
         });
-});    
+});

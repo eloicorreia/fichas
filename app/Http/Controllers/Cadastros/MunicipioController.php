@@ -18,7 +18,7 @@ class MunicipioController extends Controller
             $query->where(
                 'nome_municipio',
                 'like',
-                '%' . trim((string) $request->input('nome_municipio')) . '%'
+                '%'.trim((string) $request->input('nome_municipio')).'%'
             );
         }
 
@@ -88,10 +88,10 @@ class MunicipioController extends Controller
 
         if ($termo !== '') {
             $query->where(function ($subQuery) use ($termo) {
-                $subQuery->where('nome_municipio', 'like', '%' . $termo . '%')
+                $subQuery->where('nome_municipio', 'like', '%'.$termo.'%')
                     ->orWhereRaw(
                         "concat(nome_municipio, '/', uf) like ?",
-                        ['%' . $termo . '%']
+                        ['%'.$termo.'%']
                     );
             });
         }
@@ -111,8 +111,8 @@ class MunicipioController extends Controller
                     'id_municipio' => $municipio->id_municipio,
                     'nome_municipio' => $municipio->nome_municipio,
                     'uf' => $municipio->uf,
-                    'label' => $municipio->nome_municipio . '/' . $municipio->uf,
-                    'value' => $municipio->nome_municipio . '/' . $municipio->uf,
+                    'label' => $municipio->nome_municipio.'/'.$municipio->uf,
+                    'value' => $municipio->nome_municipio.'/'.$municipio->uf,
                 ];
             })
             ->values();

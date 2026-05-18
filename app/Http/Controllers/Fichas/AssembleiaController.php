@@ -19,6 +19,7 @@ use Illuminate\Validation\ValidationException;
 class AssembleiaController extends Controller
 {
     private const SESSION_PREFIX = 'wizard.fichas.assembleia.';
+
     private const TOTAL_STEPS = 2;
 
     public function start(): RedirectResponse
@@ -67,7 +68,7 @@ class AssembleiaController extends Controller
 
         $step = (int) $request->route('step');
 
-        if (!in_array($step, [1, 2], true)) {
+        if (! in_array($step, [1, 2], true)) {
             return redirect()->route('assembleia.passo.1', [
                 'numero' => $numero,
             ]);
@@ -81,7 +82,7 @@ class AssembleiaController extends Controller
             ]);
         }
 
-        return $this->noCacheView('fichas.assembleia.passo' . $step, [
+        return $this->noCacheView('fichas.assembleia.passo'.$step, [
             'evento' => $evento,
             'numero' => $numero,
             'wizard' => $wizard,
@@ -101,7 +102,7 @@ class AssembleiaController extends Controller
 
         $step = (int) $request->route('step');
 
-        if (!in_array($step, [1, 2], true)) {
+        if (! in_array($step, [1, 2], true)) {
             return redirect()->route('assembleia.passo.1', [
                 'numero' => $numero,
             ]);
@@ -306,13 +307,13 @@ class AssembleiaController extends Controller
             ? mb_strtolower(trim((string) $dados['email']), 'UTF-8')
             : null;
 
-        if (!$this->isValidDataNascimento($dados['data_nascimento'])) {
+        if (! $this->isValidDataNascimento($dados['data_nascimento'])) {
             throw ValidationException::withMessages([
                 'data_nascimento' => 'A data de nascimento é inválida ou a idade não pode ser maior que 100 anos.',
             ]);
         }
 
-        if (!$this->isValidCpf($dados['cpf'])) {
+        if (! $this->isValidCpf($dados['cpf'])) {
             throw ValidationException::withMessages([
                 'cpf' => 'CPF inválido.',
             ]);
@@ -413,7 +414,7 @@ class AssembleiaController extends Controller
                 'paroquia' => $inscricao->paroquia,
             ],
             'bannerPath' => public_path('assets/img/banner.jpg'),
-            'eventoImagePath' => public_path('assets/img/' . $numero . '.jpg'),
+            'eventoImagePath' => public_path('assets/img/'.$numero.'.jpg'),
             'pixPath' => public_path('assets/img/pix.png'),
         ];
     }
@@ -463,7 +464,7 @@ class AssembleiaController extends Controller
 
     private function wizardKey(int $numero): string
     {
-        return self::SESSION_PREFIX . $numero;
+        return self::SESSION_PREFIX.$numero;
     }
 
     private function onlyDigits(?string $valor): string
@@ -479,7 +480,7 @@ class AssembleiaController extends Controller
             return $digits;
         }
 
-        return substr($digits, 0, 5) . '-' . substr($digits, 5, 3);
+        return substr($digits, 0, 5).'-'.substr($digits, 5, 3);
     }
 
     private function formatCpf(?string $valor): string
@@ -490,10 +491,10 @@ class AssembleiaController extends Controller
             return $digits;
         }
 
-        return substr($digits, 0, 3) . '.'
-            . substr($digits, 3, 3) . '.'
-            . substr($digits, 6, 3) . '-'
-            . substr($digits, 9, 2);
+        return substr($digits, 0, 3).'.'
+            .substr($digits, 3, 3).'.'
+            .substr($digits, 6, 3).'-'
+            .substr($digits, 9, 2);
     }
 
     private function isValidCpf(?string $cpf): bool

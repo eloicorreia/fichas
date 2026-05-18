@@ -16,7 +16,6 @@ use Throwable;
 
 class RoleController extends Controller
 {
-
     public function index(): View
     {
         $q = trim((string) request('q', ''));
@@ -32,7 +31,7 @@ class RoleController extends Controller
             'permissions_count',
         ];
 
-        if (!in_array($sort, $allowedSorts, true)) {
+        if (! in_array($sort, $allowedSorts, true)) {
             $sort = 'name';
         }
 
@@ -64,7 +63,7 @@ class RoleController extends Controller
     public function create(): View
     {
         return view('secretaria.roles.create', [
-            'role' => new Role(),
+            'role' => new Role,
         ]);
     }
 

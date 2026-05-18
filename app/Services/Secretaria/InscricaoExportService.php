@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace App\Services\Secretaria;
 
 use App\Models\InscricaoCursilho;
-use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InscricaoExportService
 {
     /**
-     * @param Collection<int, InscricaoCursilho> $inscricoes
+     * @param  iterable<int, InscricaoCursilho>  $inscricoes
      */
-    public function download(Collection $inscricoes, string $filename): StreamedResponse
+    public function download(iterable $inscricoes, string $filename): StreamedResponse
     {
         return response()->streamDownload(function () use ($inscricoes): void {
             $handle = fopen('php://output', 'wb');

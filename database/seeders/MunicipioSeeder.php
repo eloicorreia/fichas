@@ -27869,7 +27869,7 @@ class MunicipioSeeder extends Seeder
                 'id_municipio' => 5300108,
                 'nome_municipio' => 'Brasília',
                 'uf' => 'DF',
-            ]
+            ],
         ];
 
         foreach (array_chunk($dados, 500) as $lote) {

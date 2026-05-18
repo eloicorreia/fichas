@@ -10,10 +10,12 @@ use App\Http\Requests\Secretaria\UpdateEventoInscricaoRequest;
 use App\Models\Evento;
 use App\Models\InscricaoCursilho;
 use App\Services\Secretaria\EventoInscricaoService;
+use App\Services\Secretaria\InscricaoCursilhoQueryService;
 use App\Services\Secretaria\InscricaoExportService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -21,64 +23,57 @@ use Throwable;
 
 class EventoInscricaoController extends Controller
 {
-    public function index(): View
+    public function index(Request $request, InscricaoCursilhoQueryService $queryService): View
     {
-        $filters = $this->resolveFilters();
+        $filters = $queryService->resolveFilters($request);
 
-        $inscricoes = $this->buildBaseQuery($filters)
+        $inscricoes = $queryService->build($filters)
             ->paginate(20)
             ->withQueryString();
 
-        return view('secretaria.inscricoes.index', [
-            'inscricoes' => $inscricoes,
-            'evento' => null,
-            'eventos' => Evento::query()
-                ->orderByDesc('inicio_em')
-                ->get(['id', 'nome', 'numero']),
-            'q' => $filters['q'],
-            'eventoId' => $filters['eventoId'],
-            'status' => $filters['status'],
-            'pagamento' => $filters['pagamento'],
-            'sort' => $filters['sort'],
-            'dir' => $filters['dir'],
-            'statusDisponiveis' => InscricaoCursilho::getStatusDisponiveis(),
-        ]);
+        return $this->viewIndex($inscricoes, $filters);
     }
 
-    public function indexByEvento(Evento $evento): View
-    {
-        $filters = $this->resolveFilters();
+    public function indexByEvento(
+        Evento $evento,
+        Request $request,
+        InscricaoCursilhoQueryService $queryService
+    ): View {
+        $filters = $queryService->resolveFilters($request);
         $filters['eventoId'] = (string) $evento->id;
 
-        $inscricoes = $this->buildBaseQuery($filters)
-            ->where('inscricoes_cursilho.evento_id', $evento->id)
+        $inscricoes = $queryService->build($filters)
             ->paginate(20)
             ->withQueryString();
 
-        return view('secretaria.inscricoes.index', [
-            'inscricoes' => $inscricoes,
-            'evento' => $evento,
-            'eventos' => collect(),
-            'q' => $filters['q'],
-            'eventoId' => (string) $evento->id,
-            'status' => $filters['status'],
-            'pagamento' => $filters['pagamento'],
-            'sort' => $filters['sort'],
-            'dir' => $filters['dir'],
-            'statusDisponiveis' => InscricaoCursilho::getStatusDisponiveis(),
-        ]);
+        return $this->viewIndex($inscricoes, $filters, $evento);
     }
 
-    public function export(InscricaoExportService $exportService): \Symfony\Component\HttpFoundation\StreamedResponse
-    {
-        $filters = $this->resolveFilters();
-
-        $inscricoes = $this->buildBaseQuery($filters)
-            ->get();
+    public function export(
+        Request $request,
+        InscricaoCursilhoQueryService $queryService,
+        InscricaoExportService $exportService
+    ): StreamedResponse {
+        $filters = $queryService->resolveFilters($request);
 
         return $exportService->download(
-            $inscricoes,
-            'inscricoes_' . now()->format('Ymd_His') . '.csv'
+            $queryService->build($filters)->cursor(),
+            'inscricoes_'.now()->format('Ymd_His').'.csv'
+        );
+    }
+
+    public function exportByEvento(
+        Evento $evento,
+        Request $request,
+        InscricaoCursilhoQueryService $queryService,
+        InscricaoExportService $exportService
+    ): StreamedResponse {
+        $filters = $queryService->resolveFilters($request);
+        $filters['eventoId'] = (string) $evento->id;
+
+        return $exportService->download(
+            $queryService->build($filters)->cursor(),
+            'inscricoes_'.now()->format('Ymd_His').'.csv'
         );
     }
 
@@ -86,7 +81,7 @@ class EventoInscricaoController extends Controller
     {
         return view('secretaria.inscricoes.create', [
             'evento' => $evento,
-            'inscricao' => new InscricaoCursilho(),
+            'inscricao' => new InscricaoCursilho,
             'statusDisponiveis' => InscricaoCursilho::getStatusDisponiveis(),
         ]);
     }
@@ -196,79 +191,25 @@ class EventoInscricaoController extends Controller
     }
 
     /**
-     * @param array<string, string> $filters
+     * @param  array<string, string>  $filters
      */
-    private function buildBaseQuery(array $filters): Builder
+    private function viewIndex(LengthAwarePaginator $inscricoes, array $filters, ?Evento $evento = null): View
     {
-        $sortMap = [
-            'nome' => 'inscricoes_cursilho.nome',
-            'cpf' => 'inscricoes_cursilho.cpf',
-            'telefone' => 'inscricoes_cursilho.telefone',
-            'email' => 'inscricoes_cursilho.email',
-            'evento' => 'eventos.nome',
-            'status_ficha' => 'inscricoes_cursilho.status_ficha',
-            'pagamento_confirmado' => 'inscricoes_cursilho.pagamento_confirmado',
-        ];
-
-        $sortColumn = $sortMap[$filters['sort']] ?? 'inscricoes_cursilho.id';
-
-        return InscricaoCursilho::query()
-            ->select('inscricoes_cursilho.*')
-            ->with('evento:id,nome,numero')
-            ->leftJoin('eventos', 'eventos.id', '=', 'inscricoes_cursilho.evento_id')
-            ->when($filters['q'] !== '', function ($query) use ($filters): void {
-                $query->where(function ($subQuery) use ($filters): void {
-                    $subQuery->where('inscricoes_cursilho.nome', 'like', '%' . $filters['q'] . '%')
-                        ->orWhere('inscricoes_cursilho.cpf', 'like', '%' . $filters['q'] . '%')
-                        ->orWhere('inscricoes_cursilho.email', 'like', '%' . $filters['q'] . '%')
-                        ->orWhere('inscricoes_cursilho.telefone', 'like', '%' . $filters['q'] . '%');
-                });
-            })
-            ->when($filters['eventoId'] !== '', function ($query) use ($filters): void {
-                $query->where('inscricoes_cursilho.evento_id', $filters['eventoId']);
-            })
-            ->when($filters['status'] !== '', function ($query) use ($filters): void {
-                $query->where('inscricoes_cursilho.status_ficha', $filters['status']);
-            })
-            ->when($filters['pagamento'] !== '', function ($query) use ($filters): void {
-                $query->where(
-                    'inscricoes_cursilho.pagamento_confirmado',
-                    $filters['pagamento'] === 'confirmado'
-                );
-            })
-            ->orderBy($sortColumn, $filters['dir'])
-            ->orderByDesc('inscricoes_cursilho.id');
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function resolveFilters(): array
-    {
-        $sort = (string) request('sort', 'nome');
-        $dir = strtolower((string) request('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
-
-        $allowedSorts = [
-            'nome',
-            'cpf',
-            'telefone',
-            'email',
-            'evento',
-            'status_ficha',
-            'pagamento_confirmado',
-        ];
-
-        if (!in_array($sort, $allowedSorts, true)) {
-            $sort = 'nome';
-        }
-
-        return [
-            'q' => trim((string) request('q', '')),
-            'eventoId' => trim((string) request('evento_id', '')),
-            'status' => trim((string) request('status', '')),
-            'pagamento' => trim((string) request('pagamento', '')),
-            'sort' => $sort,
-            'dir' => $dir,
-        ];
+        return view('secretaria.inscricoes.index', [
+            'inscricoes' => $inscricoes,
+            'evento' => $evento,
+            'eventos' => $evento
+                ? collect()
+                : Evento::query()
+                    ->orderByDesc('inicio_em')
+                    ->get(['id', 'nome', 'numero']),
+            'q' => $filters['q'],
+            'eventoId' => $filters['eventoId'],
+            'status' => $filters['status'],
+            'pagamento' => $filters['pagamento'],
+            'sort' => $filters['sort'],
+            'dir' => $filters['dir'],
+            'statusDisponiveis' => InscricaoCursilho::getStatusDisponiveis(),
+        ]);
     }
 }

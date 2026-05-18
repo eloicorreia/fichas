@@ -75,7 +75,7 @@ class User extends Authenticatable
     /**
      * Verifica se o usuário possui ao menos um dos papéis informados.
      *
-     * @param array<int, string> $roleNames
+     * @param  array<int, string>  $roleNames
      */
     public function hasAnyRole(array $roleNames): bool
     {

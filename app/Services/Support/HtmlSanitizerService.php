@@ -70,7 +70,7 @@ class HtmlSanitizerService
 
         $root = $document->getElementById('root');
 
-        if (!$root instanceof DOMElement) {
+        if (! $root instanceof DOMElement) {
             return null;
         }
 
@@ -95,7 +95,7 @@ class HtmlSanitizerService
         for ($index = $parentNode->childNodes->length - 1; $index >= 0; $index--) {
             $childNode = $parentNode->childNodes->item($index);
 
-            if (!$childNode instanceof DOMNode) {
+            if (! $childNode instanceof DOMNode) {
                 continue;
             }
 
@@ -103,15 +103,17 @@ class HtmlSanitizerService
                 continue;
             }
 
-            if (!$childNode instanceof DOMElement) {
+            if (! $childNode instanceof DOMElement) {
                 $parentNode->removeChild($childNode);
+
                 continue;
             }
 
             $tagName = strtolower($childNode->tagName);
 
-            if (!in_array($tagName, $this->allowedTags, true)) {
+            if (! in_array($tagName, $this->allowedTags, true)) {
                 $this->unwrapNode($childNode);
+
                 continue;
             }
 
@@ -136,8 +138,9 @@ class HtmlSanitizerService
 
             $attributeName = strtolower($attribute->name);
 
-            if (!in_array($attributeName, $allowedAttributes, true)) {
+            if (! in_array($attributeName, $allowedAttributes, true)) {
                 $element->removeAttribute($attributeName);
+
                 continue;
             }
 
@@ -146,6 +149,7 @@ class HtmlSanitizerService
 
                 if ($href === '' || $this->isUnsafeHref($href)) {
                     $element->removeAttribute('href');
+
                     continue;
                 }
             }
@@ -178,7 +182,7 @@ class HtmlSanitizerService
     {
         $parentNode = $element->parentNode;
 
-        if (!$parentNode instanceof DOMNode) {
+        if (! $parentNode instanceof DOMNode) {
             return;
         }
 

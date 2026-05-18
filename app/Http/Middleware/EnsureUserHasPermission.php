@@ -22,7 +22,7 @@ class EnsureUserHasPermission
     ): Response {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             abort(401);
         }
 
@@ -30,7 +30,7 @@ class EnsureUserHasPermission
             abort(500, 'Nenhuma permissão foi informada para o middleware de permission.');
         }
 
-        if (!$user->hasPermission($permission)) {
+        if (! $user->hasPermission($permission)) {
             abort(403);
         }
 

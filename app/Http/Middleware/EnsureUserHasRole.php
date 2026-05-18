@@ -22,7 +22,7 @@ class EnsureUserHasRole
     {
         $user = $request->user();
 
-        if (!$user) {
+        if (! $user) {
             abort(401);
         }
 
@@ -30,7 +30,7 @@ class EnsureUserHasRole
             abort(500, 'Nenhum papel foi informado para o middleware de role.');
         }
 
-        if (!$user->hasAnyRole($roles)) {
+        if (! $user->hasAnyRole($roles)) {
             abort(403);
         }
 

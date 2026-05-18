@@ -16,7 +16,7 @@ class AdminUserSeeder extends Seeder
     {
         $adminEmail = env('ADMIN_USER_EMAIL', 'eloi.correia@gmail.com');
 
-        if (!is_string($adminEmail) || trim($adminEmail) === '') {
+        if (! is_string($adminEmail) || trim($adminEmail) === '') {
             throw new RuntimeException(
                 'O e-mail do usuário administrador não foi definido corretamente.'
             );
@@ -26,7 +26,7 @@ class AdminUserSeeder extends Seeder
             ->where('email', $adminEmail)
             ->first();
 
-        if (!$user) {
+        if (! $user) {
             throw new RuntimeException(
                 "Usuário administrador não encontrado para o e-mail: {$adminEmail}"
             );
@@ -36,7 +36,7 @@ class AdminUserSeeder extends Seeder
             ->where('name', 'super-admin')
             ->first();
 
-        if (!$role) {
+        if (! $role) {
             throw new RuntimeException(
                 'O papel super-admin não foi encontrado. '
                 .'Execute o RoleSeeder antes do AdminUserSeeder.'

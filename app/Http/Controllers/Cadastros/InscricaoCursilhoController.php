@@ -31,7 +31,7 @@ class InscricaoCursilhoController extends Controller
         }
 
         if ($request->filled('nome')) {
-            $query->where('nome', 'like', '%' . trim((string) $request->input('nome')) . '%');
+            $query->where('nome', 'like', '%'.trim((string) $request->input('nome')).'%');
         }
 
         if ($request->filled('cpf')) {

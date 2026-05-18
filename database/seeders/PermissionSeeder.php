@@ -59,6 +59,30 @@ class PermissionSeeder extends Seeder
                 'active' => true,
             ],
             [
+                'name' => 'inscricao.create',
+                'label' => 'Criar inscrições',
+                'module' => 'inscricao',
+                'active' => true,
+            ],
+            [
+                'name' => 'inscricao.update',
+                'label' => 'Alterar inscrições',
+                'module' => 'inscricao',
+                'active' => true,
+            ],
+            [
+                'name' => 'inscricao.delete',
+                'label' => 'Excluir inscrições',
+                'module' => 'inscricao',
+                'active' => true,
+            ],
+            [
+                'name' => 'inscricao.export',
+                'label' => 'Exportar inscrições',
+                'module' => 'inscricao',
+                'active' => true,
+            ],
+            [
                 'name' => 'usuario.view',
                 'label' => 'Visualizar usuários',
                 'module' => 'usuario',
@@ -144,6 +168,10 @@ class PermissionSeeder extends Seeder
                     'evento.update',
                     'inscricao.view',
                     'inscricao.review',
+                    'inscricao.create',
+                    'inscricao.update',
+                    'inscricao.delete',
+                    'inscricao.export',
                     'usuario.view',
                 ])
             );
@@ -164,7 +192,7 @@ class PermissionSeeder extends Seeder
     /**
      * Retorna os ids das permissões com base nos nomes informados.
      *
-     * @param array<int, string> $permissionNames
+     * @param  array<int, string>  $permissionNames
      * @return array<int, int>
      */
     private function findPermissionIdsByNames(array $permissionNames): array

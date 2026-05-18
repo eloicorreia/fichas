@@ -29,7 +29,7 @@ class SecurityUserController extends Controller
             'email',
         ];
 
-        if (!in_array($sort, $allowedSorts, true)) {
+        if (! in_array($sort, $allowedSorts, true)) {
             $sort = 'name';
         }
 
@@ -74,7 +74,7 @@ class SecurityUserController extends Controller
             ->get();
 
         return view('secretaria.users.create', [
-            'user' => new User(),
+            'user' => new User,
             'roles' => $roles,
             'selectedRoles' => [],
         ]);

@@ -8,18 +8,27 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Evento extends Model
 {
     public const STATUS_PLANEJAMENTO = 'PLANEJAMENTO';
+
     public const STATUS_ABERTO = 'ABERTO';
+
     public const STATUS_FECHADO = 'FECHADO';
 
     public const TIPO_EVENTO_CURSILHO = 'CURSILHO';
+
     public const TIPO_EVENTO_ASSEMBLEIA = 'ASSEMBLEIA';
+
     public const TIPO_EVENTO_ENCONTRO = 'ENCONTRO';
 
     public const PUBLICO_HOMENS = 'HOMENS';
+
     public const PUBLICO_MULHERES = 'MULHERES';
+
     public const PUBLICO_JOVENS = 'JOVENS';
+
     public const PUBLICO_GERAL = 'GERAL';
+
     public const PUBLICO_CASAIS = 'CASAIS';
+
     public const PUBLICO_DIOCESANA = 'DIOCESANA';
 
     protected $table = 'eventos';
@@ -60,7 +69,7 @@ class Evento extends Model
         'informacoes_finais',
         'observacoes_internas',
         'inicio_descricao',
-        'final_descricao'
+        'final_descricao',
     ];
 
     protected function casts(): array

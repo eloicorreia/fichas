@@ -58,7 +58,6 @@ class StoreEventoInscricaoRequest extends FormRequest
             'padrinho_madrinha_contato' => ['nullable', 'string'],
             'pagamento_confirmado' => ['nullable', 'boolean'],
             'pagamento_data' => ['nullable', 'date'],
-            'pagamento_comprovante_base64' => ['nullable', 'string'],
         ];
     }
 }
