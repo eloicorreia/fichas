@@ -43,7 +43,7 @@ class InscricaoExportService
 
             foreach ($inscricoes as $inscricao) {
                 fputcsv($handle, [
-                    $this->escapeCsvValue($inscricao->evento_label),
+                    $this->escapeCsvValue($this->buildEventoLabel($inscricao)),
                     $this->escapeCsvValue($inscricao->nome),
                     $this->escapeCsvValue($inscricao->cpf),
                     $this->escapeCsvValue($inscricao->telefone_formatado),
@@ -65,6 +65,25 @@ class InscricaoExportService
         }, $filename, [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
+    }
+
+    private function buildEventoLabel(InscricaoCursilho $inscricao): string
+    {
+        if ($inscricao->relationLoaded('evento') && $inscricao->evento) {
+            if ($inscricao->evento->numero) {
+                return $inscricao->evento->numero.' - '.$inscricao->evento->nome;
+            }
+
+            return $inscricao->evento->nome;
+        }
+
+        if ($inscricao->numero_evento || $inscricao->tipo_evento) {
+            return collect([$inscricao->numero_evento, $inscricao->tipo_evento ?: 'Evento'])
+                ->filter()
+                ->implode(' - ');
+        }
+
+        return '-';
     }
 
     private function escapeCsvValue(mixed $value): string

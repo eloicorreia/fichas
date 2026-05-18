@@ -80,7 +80,7 @@ return new class extends Migration
     }
 
     /**
-     * Remove permissões granulares criadas por esta migration.
+     * Remove apenas vínculos de papéis, preservando permissões em produção.
      */
     public function down(): void
     {
@@ -95,10 +95,6 @@ return new class extends Migration
 
         DB::table('permission_role')
             ->whereIn('permission_id', $permissionIds)
-            ->delete();
-
-        DB::table('permissions')
-            ->whereIn('id', $permissionIds)
             ->delete();
     }
 };

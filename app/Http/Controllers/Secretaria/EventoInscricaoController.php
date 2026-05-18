@@ -58,7 +58,10 @@ class EventoInscricaoController extends Controller
 
         Log::info('Exportação global de inscrições solicitada.', [
             'user_id' => $request->user()?->id,
+            'evento_id' => null,
             'filters' => $filters,
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
         return $exportService->download(
@@ -80,6 +83,8 @@ class EventoInscricaoController extends Controller
             'user_id' => $request->user()?->id,
             'evento_id' => $evento->id,
             'filters' => $filters,
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
 
         return $exportService->download(

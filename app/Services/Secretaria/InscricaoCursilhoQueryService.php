@@ -20,6 +20,11 @@ class InscricaoCursilhoQueryService
         $eventoId = trim((string) $request->query('evento_id', ''));
         $pagamento = trim((string) $request->query('pagamento', ''));
         $status = trim((string) $request->query('status', ''));
+        $q = trim((string) $request->query('q', ''));
+
+        if (mb_strlen($q) > 100) {
+            $q = mb_substr($q, 0, 100);
+        }
 
         if (! array_key_exists($sort, $this->sortMap())) {
             $sort = 'nome';
@@ -38,7 +43,7 @@ class InscricaoCursilhoQueryService
         }
 
         return [
-            'q' => trim((string) $request->query('q', '')),
+            'q' => $q,
             'eventoId' => $eventoId,
             'status' => $status,
             'pagamento' => $pagamento,

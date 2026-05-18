@@ -19,6 +19,8 @@
     }
 
     $eventoContexto = $evento ?? $eventoSelecionado;
+    $usuario = auth()->user();
+    $podeIncluir = $usuario?->hasPermission('inscricao.create') || $usuario?->hasPermission('inscricao.review');
 
     $baseRoute = $evento
         ? route('secretaria.eventos.inscricoes.index', $evento)
@@ -64,18 +66,20 @@
         </div>
 
         <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-            @if ($eventoContexto)
+            @if ($eventoContexto && $podeIncluir)
                 <a
                     href="{{ route('secretaria.eventos.inscricoes.create', $eventoContexto) }}"
+                    data-testid="incluir-inscricao"
                     class="inline-flex items-center justify-center rounded-xl bg-sky-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-800"
                 >
                     Incluir inscrição
                 </a>
             @endif
 
-            @if (auth()->user()?->hasPermission('inscricao.export'))
+            @if ($usuario?->hasPermission('inscricao.export'))
                 <a
                     href="{{ $exportRoute }}"
+                    data-testid="exportar-inscricoes"
                     class="inline-flex items-center justify-center rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
                 >
                     Exportar

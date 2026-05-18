@@ -114,6 +114,18 @@ class SecretariaInscricoesTest extends TestCase
             ->assertSee('Evento Id Seguro');
     }
 
+    public function test_filtro_q_maior_que_cem_caracteres_nao_quebra_a_listagem(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view']);
+        $evento = $this->createEvento();
+
+        $this->createInscricao($evento, ['nome' => 'Busca Longa Segura']);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.inscricoes.index', ['q' => str_repeat('a', 150)]))
+            ->assertOk();
+    }
+
     public function test_exportacao_global_respeita_filtros(): void
     {
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.export']);
@@ -139,6 +151,8 @@ class SecretariaInscricoesTest extends TestCase
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.export']);
 
         $this->actingAs($user)
+            ->withHeader('User-Agent', 'FeatureTest/1.0')
+            ->withServerVariables(['REMOTE_ADDR' => '203.0.113.10'])
             ->get(route('secretaria.inscricoes.export'))
             ->assertOk();
 
@@ -146,6 +160,8 @@ class SecretariaInscricoesTest extends TestCase
             ->with('Exportação global de inscrições solicitada.', Mockery::on(
                 fn (array $context): bool => $context['user_id'] === $user->id
                     && array_key_exists('filters', $context)
+                    && $context['ip'] === '203.0.113.10'
+                    && $context['user_agent'] === 'FeatureTest/1.0'
             ))
             ->once();
     }
@@ -190,7 +206,42 @@ class SecretariaInscricoesTest extends TestCase
         $this->actingAs($user)
             ->get(route('secretaria.inscricoes.index'))
             ->assertOk()
-            ->assertDontSee('Exportar');
+            ->assertDontSee('data-testid="exportar-inscricoes"', false);
+    }
+
+    public function test_botao_exportar_aparece_com_permissao_de_exportacao(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.export']);
+        $evento = $this->createEvento();
+
+        $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.inscricoes.index'))
+            ->assertOk()
+            ->assertSee('data-testid="exportar-inscricoes"', false);
+    }
+
+    public function test_botao_incluir_inscricao_nao_aparece_sem_create_ou_review(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view']);
+        $evento = $this->createEvento();
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertOk()
+            ->assertDontSee('data-testid="incluir-inscricao"', false);
+    }
+
+    public function test_botao_incluir_inscricao_aparece_com_inscricao_create(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.create']);
+        $evento = $this->createEvento();
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertOk()
+            ->assertSee('data-testid="incluir-inscricao"', false);
     }
 
     public function test_exportacao_protege_campos_contra_csv_injection(): void
