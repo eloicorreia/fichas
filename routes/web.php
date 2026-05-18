@@ -223,6 +223,7 @@ Route::prefix('secretaria')->group(function () {
         ->name('secretaria.inscricoes.')
         ->group(function () {
             Route::get('/', [EventoInscricaoController::class, 'index'])->name('index');
+            Route::get('/exportar', [EventoInscricaoController::class, 'export'])->name('export');
         });
 
     Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:inscricao.view'])
@@ -236,6 +237,7 @@ Route::prefix('secretaria')->group(function () {
                 Route::post('/', [EventoInscricaoController::class, 'store'])->name('store');
                 Route::get('/{inscricao}/editar', [EventoInscricaoController::class, 'edit'])->name('edit');
                 Route::put('/{inscricao}', [EventoInscricaoController::class, 'update'])->name('update');
+                Route::delete('/{inscricao}', [EventoInscricaoController::class, 'destroy'])->name('destroy');
             });
         });
 });    

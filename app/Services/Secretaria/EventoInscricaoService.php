@@ -10,8 +10,6 @@ use App\Models\InscricaoCursilho;
 class EventoInscricaoService
 {
     /**
-     * Cria uma inscrição já vinculada a um evento.
-     *
      * @param array<string, mixed> $data
      */
     public function createForEvento(Evento $evento, array $data): InscricaoCursilho
@@ -26,8 +24,6 @@ class EventoInscricaoService
     }
 
     /**
-     * Atualiza uma inscrição mantendo consistência com o evento.
-     *
      * @param array<string, mixed> $data
      */
     public function updateForEvento(
@@ -38,6 +34,15 @@ class EventoInscricaoService
         $payload = $this->buildPayload($evento, $data);
 
         $inscricao->update($payload);
+    }
+
+    public function deleteForEvento(Evento $evento, InscricaoCursilho $inscricao): void
+    {
+        if ((int) $inscricao->evento_id !== (int) $evento->id) {
+            abort(404);
+        }
+
+        $inscricao->delete();
     }
 
     /**

@@ -85,4 +85,57 @@ class InscricaoCursilho extends Model
     {
         return $this->belongsTo(Evento::class, 'evento_id');
     }
+
+    public function getTelefoneFormatadoAttribute(): ?string
+    {
+        if (!$this->telefone) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $this->telefone);
+
+        if (!is_string($digits) || $digits === '') {
+            return $this->telefone;
+        }
+
+        if (strlen($digits) === 11) {
+            return preg_replace(
+                '/^(\d{2})(\d{5})(\d{4})$/',
+                '($1) $2-$3',
+                $digits
+            ) ?: $this->telefone;
+        }
+
+        if (strlen($digits) === 10) {
+            return preg_replace(
+                '/^(\d{2})(\d{4})(\d{4})$/',
+                '($1) $2-$3',
+                $digits
+            ) ?: $this->telefone;
+        }
+
+        return $this->telefone;
+    }
+
+    public function getPagamentoStatusAttribute(): string
+    {
+        return $this->pagamento_confirmado ? 'Confirmado' : 'Pendente';
+    }
+
+    public function getEventoLabelAttribute(): string
+    {
+        if ($this->evento) {
+            if ($this->evento->numero) {
+                return $this->evento->numero . ' - ' . $this->evento->nome;
+            }
+
+            return $this->evento->nome;
+        }
+
+        if ($this->numero_evento && $this->nome) {
+            return $this->numero_evento . ' - ' . ($this->tipo_evento ?? 'Evento');
+        }
+
+        return '-';
+    }
 }
