@@ -334,9 +334,9 @@
         </div>
 
         <div class="actions">
-          <a class="btn-link" href="{{ url('cursilho/'.$sexo.'/'.$numero.'/passo/6') }}">Voltar</a>
+          <a class="btn-link" href="{{ route('cursilho.passo.6', ['publicoEvento' => $sexo, 'numero' => $numero]) }}">Voltar</a>
 
-          <form method="POST" action="{{ url('cursilho/'.$sexo.'/'.$numero.'/finalizar') }}">
+          <form method="POST" action="{{ route('cursilho.finalizar', ['publicoEvento' => $sexo, 'numero' => $numero]) }}">
             @csrf
             <button class="btn btn-primary" type="submit">Confirmo que está tudo correto</button>
           </form>

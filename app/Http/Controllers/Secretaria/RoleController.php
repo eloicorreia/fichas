@@ -103,6 +103,12 @@ class RoleController extends Controller
     {
         $data = $request->validated();
 
+        if ($role->name === 'super-admin' && ($data['name'] ?? 'super-admin') !== 'super-admin') {
+            return redirect()
+                ->route('secretaria.roles.index')
+                ->with('status', 'Não é possível alterar o identificador técnico do papel super-admin.');
+        }
+
         if ($role->name === 'super-admin' && ($data['active'] ?? true) == false && $this->isOnlyActiveSuperAdminRole($role)) {
             return redirect()
                 ->route('secretaria.roles.index')

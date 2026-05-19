@@ -52,6 +52,7 @@ class UsuarioAdminTest extends TestCase
     {
         $user = $this->superAdminWithPermissions(['usuario.view', 'usuario.manage']);
         $target = User::factory()->create(['email' => 'alvo@example.test']);
+        $role = Role::query()->create(['name' => 'consulta-update', 'label' => 'Consulta Update', 'active' => true]);
 
         $this->actingAs($user)
             ->put(route('secretaria.users.update', $target), [
@@ -59,7 +60,7 @@ class UsuarioAdminTest extends TestCase
                 'email' => 'alvo-atualizado@example.test',
                 'password' => '',
                 'password_confirmation' => '',
-                'roles' => [],
+                'roles' => [$role->id],
             ])
             ->assertRedirect(route('secretaria.users.index'));
 
@@ -104,6 +105,29 @@ class UsuarioAdminTest extends TestCase
             ->assertSessionHasErrors('password');
     }
 
+    public function test_usuario_manage_exige_ao_menos_uma_role_ativa(): void
+    {
+        $user = $this->superAdminWithPermissions(['usuario.view', 'usuario.manage']);
+
+        $this->actingAs($user)
+            ->post(route('secretaria.users.store'), $this->userPayload([
+                'roles' => [],
+            ]))
+            ->assertSessionHasErrors('roles');
+    }
+
+    public function test_usuario_manage_nao_vincula_role_inativa(): void
+    {
+        $user = $this->superAdminWithPermissions(['usuario.view', 'usuario.manage']);
+        $role = Role::query()->create(['name' => 'inativa', 'label' => 'Inativa', 'active' => false]);
+
+        $this->actingAs($user)
+            ->post(route('secretaria.users.store'), $this->userPayload([
+                'roles' => [$role->id],
+            ]))
+            ->assertSessionHasErrors('roles.0');
+    }
+
     public function test_vinculo_de_roles_funciona(): void
     {
         $user = $this->superAdminWithPermissions(['usuario.view', 'usuario.manage']);
@@ -117,6 +141,21 @@ class UsuarioAdminTest extends TestCase
             ->assertRedirect(route('secretaria.users.index'));
 
         $this->assertTrue($target->fresh()->roles()->whereKey($role->id)->exists());
+    }
+
+    public function test_vinculo_de_roles_nao_aceita_role_inativa(): void
+    {
+        $user = $this->superAdminWithPermissions(['usuario.view', 'usuario.manage']);
+        $target = User::factory()->create();
+        $role = Role::query()->create(['name' => 'secretaria-inativa', 'label' => 'Secretaria Inativa', 'active' => false]);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.users.roles.update', $target), [
+                'roles' => [$role->id],
+            ])
+            ->assertSessionHasErrors('roles.0');
+
+        $this->assertFalse($target->fresh()->roles()->whereKey($role->id)->exists());
     }
 
     public function test_nao_remove_role_super_admin_do_ultimo_admin(): void

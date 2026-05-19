@@ -124,7 +124,7 @@
           <span>Passo 4 de 6 • Outras informações</span>
         </div>
 
-        <form class="form" method="POST" action="{{ url('cursilho/'.$sexo.'/'.$numero.'/passo/4') }}" novalidate>
+        <form class="form" method="POST" action="{{ route('cursilho.passo.4.store', ['publicoEvento' => $sexo, 'numero' => $numero]) }}" novalidate>
           @csrf
 
           <div class="field">
@@ -283,7 +283,7 @@
           @endphp
 
           <div class="actions">
-            <a class="btn-link" href="{{ url('cursilho/'.$sexo.'/'.$numero.'/passo/'.$passoVoltar) }}">Voltar</a>
+            <a class="btn-link" href="{{ route("cursilho.passo.$passoVoltar", ['publicoEvento' => $sexo, 'numero' => $numero]) }}">Voltar</a>
             <button class="btn btn-primary" type="submit">Prosseguir</button>
           </div>
 

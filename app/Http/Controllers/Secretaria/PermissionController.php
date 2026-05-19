@@ -119,7 +119,7 @@ class PermissionController extends Controller
     {
         $data = $request->validated();
 
-        if (($data['active'] ?? true) == false && $this->isCriticalAdminPermission($permission)) {
+        if (($data['active'] ?? true) == false && $permission->isCriticalAdminPermission()) {
             return redirect()
                 ->route('secretaria.permissions.index')
                 ->with('status', 'Não é possível desativar permissão administrativa crítica.');
@@ -147,19 +147,15 @@ class PermissionController extends Controller
         }
     }
 
-    private function isCriticalAdminPermission(Permission $permission): bool
-    {
-        return in_array($permission->name, [
-            'dashboard.view',
-            'usuario.manage',
-            'role.manage',
-            'permission.manage',
-        ], true);
-    }
-
     public function destroy(Permission $permission): RedirectResponse
     {
         $permission->loadCount('roles');
+
+        if ($permission->isCriticalAdminPermission()) {
+            return redirect()
+                ->route('secretaria.permissions.index')
+                ->with('status', 'Não é possível excluir permissão administrativa crítica.');
+        }
 
         if ($permission->roles_count > 0) {
             return redirect()

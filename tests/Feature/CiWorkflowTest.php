@@ -50,6 +50,11 @@ class CiWorkflowTest extends TestCase
         $this->assertIsString($workflow);
         $this->assertIsString($docs);
         $this->assertStringContainsString('workflow_dispatch:', $workflow);
+        $this->assertStringContainsString('pull_request:', $workflow);
+        $this->assertStringContainsString('push:', $workflow);
+        $this->assertStringContainsString("php-version: '8.3'", $workflow);
+        $this->assertStringContainsString('composer test', $workflow);
+        $this->assertStringContainsString('php artisan test', $workflow);
         $this->assertStringContainsString('php artisan test --coverage', $workflow);
         $this->assertStringContainsString('php artisan test --coverage', $docs);
     }

@@ -23,9 +23,9 @@ Route::prefix('/fichas/cursilho/{publicoEvento}')
 
         /*
          * Entrada pública:
-         * /cursilho/homens
-         * /cursilho/mulheres
-         * /cursilho/jovens
+         * /fichas/cursilho/homens
+         * /fichas/cursilho/mulheres
+         * /fichas/cursilho/jovens
          *
          * O controller resolve o primeiro evento CURSILHO
          * ativo + aberto, ordenado pelo menor id.
@@ -38,9 +38,9 @@ Route::prefix('/fichas/cursilho/{publicoEvento}')
 
         /*
          * Rota canônica do evento:
-         * /cursilho/mulheres/109
-         * /cursilho/homens/72
-         * /cursilho/jovens/12
+         * /fichas/cursilho/mulheres/109
+         * /fichas/cursilho/homens/72
+         * /fichas/cursilho/jovens/12
          */
         Route::prefix('{numero}')
             ->whereNumber('numero')

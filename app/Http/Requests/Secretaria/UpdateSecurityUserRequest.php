@@ -36,8 +36,11 @@ class UpdateSecurityUserRequest extends FormRequest
                 'confirmed',
                 Password::min(8)->letters()->mixedCase()->numbers(),
             ],
-            'roles' => ['nullable', 'array'],
-            'roles.*' => ['integer', 'exists:roles,id'],
+            'roles' => ['required', 'array', 'min:1'],
+            'roles.*' => [
+                'integer',
+                Rule::exists('roles', 'id')->where('active', true),
+            ],
         ];
     }
 }

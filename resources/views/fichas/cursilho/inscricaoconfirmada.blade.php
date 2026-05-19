@@ -29,7 +29,7 @@
       <p>Identificamos que já existe uma inscrição para este evento com o CPF informado.</p>
       <p>Para evitar duplicidade, o sistema não permite continuar com um novo preenchimento.</p>
       <div class="actions">
-        <a class="btn btn-primary" href="{{ url('cursilho/' . $publicoEvento) }}">
+        <a class="btn btn-primary" href="{{ route('cursilho.start_by_publico', ['publicoEvento' => $publicoEvento]) }}">
           Voltar
         </a>
       </div>

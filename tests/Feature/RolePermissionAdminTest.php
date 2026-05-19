@@ -164,6 +164,23 @@ class RolePermissionAdminTest extends TestCase
         $this->assertTrue($role->fresh()->active);
     }
 
+    public function test_nao_renomeia_role_super_admin(): void
+    {
+        $user = $this->superAdminWithPermissions(['role.view', 'role.manage']);
+        $role = Role::query()->where('name', 'super-admin')->firstOrFail();
+
+        $this->actingAs($user)
+            ->put(route('secretaria.roles.update', $role), [
+                'name' => 'admin-total',
+                'label' => 'Super Admin',
+                'active' => true,
+            ])
+            ->assertRedirect(route('secretaria.roles.index'))
+            ->assertSessionHas('status', 'Não é possível alterar o identificador técnico do papel super-admin.');
+
+        $this->assertSame('super-admin', $role->fresh()->name);
+    }
+
     public function test_nao_desativa_permission_critica_de_admin(): void
     {
         $user = $this->superAdminWithPermissions(['permission.view', 'permission.manage']);
@@ -185,6 +202,25 @@ class RolePermissionAdminTest extends TestCase
         $this->assertTrue($permission->fresh()->active);
     }
 
+    public function test_nao_exclui_permission_critica_de_admin(): void
+    {
+        $user = $this->superAdminWithPermissions(['permission.view', 'permission.manage']);
+        $permission = Permission::query()->updateOrCreate(
+            ['name' => 'usuario.view'],
+            ['label' => 'Ver usuários', 'module' => 'usuario', 'active' => true]
+        );
+
+        $this->actingAs($user)
+            ->delete(route('secretaria.permissions.destroy', $permission))
+            ->assertRedirect(route('secretaria.permissions.index'))
+            ->assertSessionHas('status', 'Não é possível excluir permissão administrativa crítica.');
+
+        $this->assertDatabaseHas('permissions', [
+            'id' => $permission->id,
+            'name' => 'usuario.view',
+        ]);
+    }
+
     public function test_nao_remove_role_manage_do_unico_admin(): void
     {
         $user = $this->superAdminWithPermissions(['role.view', 'role.manage']);
@@ -203,7 +239,7 @@ class RolePermissionAdminTest extends TestCase
                 'permissions' => [$roleView->id, $dashboard->id],
             ])
             ->assertRedirect(route('secretaria.roles.index'))
-            ->assertSessionHas('status', 'Não é possível remover role.manage do único papel administrador.');
+            ->assertSessionHas('status', 'Não é possível remover permissão administrativa crítica do único papel administrador.');
 
         $this->assertTrue($role->fresh()->permissions()->where('permissions.name', 'role.manage')->exists());
     }

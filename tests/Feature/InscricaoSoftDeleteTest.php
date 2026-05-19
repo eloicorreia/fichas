@@ -213,29 +213,15 @@ class InscricaoSoftDeleteTest extends TestCase
         $this->assertSoftDeleted('inscricoes_cursilho', ['id' => $inscricao->id]);
     }
 
-    public function test_nao_restaura_se_houver_inscricao_ativa_com_mesmo_cpf_no_evento(): void
+    public function test_nao_cria_inscricao_ativa_com_mesmo_cpf_de_excluida_no_evento(): void
     {
-        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.restore']);
         $evento = $this->createEvento();
         $inscricao = $this->createInscricao($evento, ['cpf' => '529.982.247-25']);
         $inscricao->delete();
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
+
         $this->createInscricao($evento, ['cpf' => '52998224725']);
-
-        $this->actingAs($user)
-            ->from(route('secretaria.eventos.inscricoes.index', [
-                'evento' => $evento,
-                'situacao' => 'excluidas',
-            ]))
-            ->put(route('secretaria.eventos.inscricoes.restore', [$evento, $inscricao]))
-            ->assertRedirect(route('secretaria.eventos.inscricoes.index', [
-                'evento' => $evento,
-                'situacao' => 'excluidas',
-            ]))
-            ->assertSessionHasErrors([
-                'inscricao' => 'Não é possível restaurar esta inscrição porque já existe uma inscrição ativa com o mesmo CPF neste evento.',
-            ]);
-
-        $this->assertSoftDeleted('inscricoes_cursilho', ['id' => $inscricao->id]);
     }
 
     public function test_restaura_normalmente_se_nao_houver_conflito(): void

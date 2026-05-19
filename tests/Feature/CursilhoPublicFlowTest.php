@@ -122,10 +122,10 @@ class CursilhoPublicFlowTest extends TestCase
         $evento = $this->createEventoCursilho(['numero' => 7104]);
 
         $this->get(route('cursilho.revisao', ['publicoEvento' => 'homens', 'numero' => $evento->numero]))
-            ->assertRedirect('http://localhost/cursilho/homens/'.$evento->numero.'/passo/1');
+            ->assertRedirect(route('cursilho.passo.1', ['publicoEvento' => 'homens', 'numero' => $evento->numero]));
 
         $this->post(route('cursilho.finalizar', ['publicoEvento' => 'homens', 'numero' => $evento->numero]))
-            ->assertRedirect('http://localhost/cursilho/homens/'.$evento->numero.'/passo/1');
+            ->assertRedirect(route('cursilho.passo.1', ['publicoEvento' => 'homens', 'numero' => $evento->numero]));
     }
 
     public function test_bloqueia_cpf_duplicado_no_mesmo_evento(): void
@@ -169,6 +169,42 @@ class CursilhoPublicFlowTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_start_by_publico_redireciona_para_passo_1_em_fichas(): void
+    {
+        $evento = $this->createEventoCursilho(['numero' => 7114]);
+
+        $response = $this->get(route('cursilho.start_by_publico', ['publicoEvento' => 'homens']));
+
+        $response->assertRedirect(route('cursilho.start', ['publicoEvento' => 'homens', 'numero' => $evento->numero]));
+        $this->assertStringStartsWith('/fichas/cursilho/', parse_url($response->headers->get('Location'), PHP_URL_PATH));
+
+        $this->followingRedirects()
+            ->get(route('cursilho.start_by_publico', ['publicoEvento' => 'homens']))
+            ->assertOk()
+            ->assertSee('Passo 1 de 6')
+            ->assertSee("{$evento->numero}º Cursilho")
+            ->assertSee("/fichas/cursilho/homens/{$evento->numero}/passo/1", false)
+            ->assertDontSee('http://localhost/cursilho', false);
+    }
+
+    public function test_start_por_numero_redireciona_para_passo_1_em_fichas(): void
+    {
+        $evento = $this->createEventoCursilho(['numero' => 7115]);
+
+        $response = $this->get(route('cursilho.start', ['publicoEvento' => 'homens', 'numero' => $evento->numero]));
+
+        $response->assertRedirect(route('cursilho.passo.1', ['publicoEvento' => 'homens', 'numero' => $evento->numero]));
+        $this->assertStringStartsWith('/fichas/cursilho/', parse_url($response->headers->get('Location'), PHP_URL_PATH));
+
+        $this->followingRedirects()
+            ->get(route('cursilho.start', ['publicoEvento' => 'homens', 'numero' => $evento->numero]))
+            ->assertOk()
+            ->assertSee('Passo 1 de 6')
+            ->assertSee("{$evento->numero}º Cursilho")
+            ->assertSee("/fichas/cursilho/homens/{$evento->numero}/passo/1", false)
+            ->assertDontSee('http://localhost/cursilho', false);
+    }
+
     public function test_cursilho_casado_nao_aceita_data_casamento_menor_que_nascimento(): void
     {
         $evento = $this->createEventoCursilho(['numero' => 7108]);
@@ -204,7 +240,7 @@ class CursilhoPublicFlowTest extends TestCase
 
         $this->postCursilhoStep(4, $evento, $this->cursilhoStep4Payload([
             'participa_igreja' => 'SIM',
-        ]))->assertRedirect('http://localhost/cursilho/homens/'.$evento->numero.'/passo/5');
+        ]))->assertRedirect(route('cursilho.passo.5', ['publicoEvento' => 'homens', 'numero' => $evento->numero]));
     }
 
     public function test_cursilho_nao_participa_igreja_pula_passo_pastoral(): void
@@ -222,10 +258,10 @@ class CursilhoPublicFlowTest extends TestCase
 
         $this->postCursilhoStep(4, $evento, $this->cursilhoStep4Payload([
             'participa_igreja' => 'NAO',
-        ]))->assertRedirect('http://localhost/cursilho/homens/'.$evento->numero.'/passo/6');
+        ]))->assertRedirect(route('cursilho.passo.6', ['publicoEvento' => 'homens', 'numero' => $evento->numero]));
 
         $this->get(route('cursilho.passo.5', ['publicoEvento' => 'homens', 'numero' => $evento->numero]))
-            ->assertRedirect('http://localhost/cursilho/homens/'.$evento->numero.'/passo/6');
+            ->assertRedirect(route('cursilho.passo.6', ['publicoEvento' => 'homens', 'numero' => $evento->numero]));
     }
 
     public function test_cursilho_sem_email_nao_envia_email_participante(): void
@@ -299,6 +335,50 @@ class CursilhoPublicFlowTest extends TestCase
         $this->assertDatabaseHas('inscricoes_cursilho', [
             'evento_id' => $evento->id,
             'cpf_normalizado' => '11144477735',
+        ]);
+    }
+
+    public function test_cursilho_bloqueia_cpf_criado_entre_passo_2_e_finalizacao(): void
+    {
+        Mail::fake();
+
+        $evento = $this->createEventoCursilho(['numero' => 7116]);
+        $this->completeCursilhoFlow($evento, [
+            'cpf' => '529.982.247-25',
+        ]);
+
+        $this->createInscricao($evento, [
+            'nome' => 'Inscricao Concorrente',
+            'cpf' => '529.982.247-25',
+        ]);
+
+        $this->post(route('cursilho.finalizar', ['publicoEvento' => 'homens', 'numero' => $evento->numero]))
+            ->assertRedirect(route('cursilho.inscricaoconfirmada', ['publicoEvento' => 'homens']));
+
+        $this->assertDatabaseCount('inscricoes_cursilho', 1);
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'evento_id' => $evento->id,
+            'nome' => 'Inscricao Concorrente',
+            'cpf_normalizado' => '52998224725',
+        ]);
+    }
+
+    public function test_cursilho_finalizado_persiste_pagamento_confirmado_false(): void
+    {
+        Mail::fake();
+
+        $evento = $this->createEventoCursilho(['numero' => 7117]);
+        $this->completeCursilhoFlow($evento, [
+            'cpf' => '111.444.777-35',
+        ]);
+
+        $this->post(route('cursilho.finalizar', ['publicoEvento' => 'homens', 'numero' => $evento->numero]))
+            ->assertOk();
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'evento_id' => $evento->id,
+            'cpf_normalizado' => '11144477735',
+            'pagamento_confirmado' => false,
         ]);
     }
 

@@ -198,13 +198,26 @@ class AssembleiaController extends Controller
 
         $payload = $this->buildInscricaoPayload($evento, $wizard);
 
-        $inscricao = InscricaoCursilho::updateOrCreate(
-            [
-                'evento_id' => $payload['evento_id'],
-                'cpf' => $payload['cpf'],
-            ],
-            $payload
-        );
+        $inscricao = DB::transaction(function () use ($payload): ?InscricaoCursilho {
+            $cpfNormalizado = $this->onlyDigits($payload['cpf'] ?? null);
+
+            $duplicada = InscricaoCursilho::withTrashed()
+                ->where('evento_id', $payload['evento_id'])
+                ->where('cpf_normalizado', $cpfNormalizado)
+                ->exists();
+
+            if ($duplicada) {
+                return null;
+            }
+
+            return InscricaoCursilho::query()->create($payload);
+        });
+
+        if ($inscricao === null) {
+            return back()
+                ->withErrors(['cpf' => 'Já existe uma inscrição para este CPF neste evento.'])
+                ->withInput();
+        }
 
         $mailViewData = $this->buildMailViewData($inscricao, $numero);
         $emailParticipante = trim((string) ($inscricao->email ?? ''));

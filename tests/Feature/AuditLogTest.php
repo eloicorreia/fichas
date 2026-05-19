@@ -71,9 +71,12 @@ class AuditLogTest extends TestCase
     public function test_criar_usuario_registra_log(): void
     {
         $user = $this->superAdminWithPermissions(['usuario.view', 'usuario.manage']);
+        $role = Role::query()->create(['name' => 'audit-secretaria', 'label' => 'Audit Secretaria', 'active' => true]);
 
         $this->actingAs($user)
-            ->post(route('secretaria.users.store'), $this->userPayload())
+            ->post(route('secretaria.users.store'), $this->userPayload([
+                'roles' => [$role->id],
+            ]))
             ->assertRedirect(route('secretaria.users.index'));
 
         Log::shouldHaveReceived('info')
@@ -84,6 +87,7 @@ class AuditLogTest extends TestCase
     {
         $user = $this->superAdminWithPermissions(['usuario.view', 'usuario.manage']);
         $target = User::factory()->create(['email' => 'audit-target@example.test']);
+        $role = Role::query()->create(['name' => 'audit-update', 'label' => 'Audit Update', 'active' => true]);
 
         $this->actingAs($user)
             ->put(route('secretaria.users.update', $target), [
@@ -91,7 +95,7 @@ class AuditLogTest extends TestCase
                 'email' => 'audit-target-updated@example.test',
                 'password' => '',
                 'password_confirmation' => '',
-                'roles' => [],
+                'roles' => [$role->id],
             ])
             ->assertRedirect(route('secretaria.users.index'));
 
@@ -186,14 +190,14 @@ class AuditLogTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function userPayload(): array
+    private function userPayload(array $overrides = []): array
     {
-        return [
+        return array_merge([
             'name' => 'Audit User',
             'email' => 'audit-user@example.test',
             'password' => 'Senha123',
             'password_confirmation' => 'Senha123',
             'roles' => [],
-        ];
+        ], $overrides);
     }
 }

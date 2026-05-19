@@ -298,7 +298,7 @@
         </div>
 
         <!-- FORM (checkbox obrigatório) -->
-        <form method="POST" action="{{ url('cursilho/'.$sexo.'/'.$numero.'/passo/1') }}">
+        <form method="POST" action="{{ route('cursilho.passo.1.store', ['publicoEvento' => $sexo, 'numero' => $numero]) }}">
           @csrf
 
           <div class="consent">

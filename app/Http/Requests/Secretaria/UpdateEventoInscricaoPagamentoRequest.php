@@ -27,6 +27,7 @@ class UpdateEventoInscricaoPagamentoRequest extends FormRequest
                 'date',
                 'before_or_equal:today',
             ],
+            'pagamento_comprovante_base64' => ['nullable', 'string'],
         ];
     }
 

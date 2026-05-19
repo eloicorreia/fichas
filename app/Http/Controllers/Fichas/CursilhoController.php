@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
@@ -52,12 +53,18 @@ class CursilhoController extends Controller
 
     private function redirectToStep(string $publicoEvento, int $numero, int $step): string
     {
-        return url("cursilho/$publicoEvento/$numero/passo/$step");
+        return route("cursilho.passo.$step", [
+            'publicoEvento' => $publicoEvento,
+            'numero' => $numero,
+        ]);
     }
 
     private function redirectToStart(string $publicoEvento, int $numero): string
     {
-        return url("cursilho/$publicoEvento/$numero");
+        return route('cursilho.start', [
+            'publicoEvento' => $publicoEvento,
+            'numero' => $numero,
+        ]);
     }
 
     private function normalizePublicoEvento(string $publicoEvento): string
@@ -260,7 +267,10 @@ class CursilhoController extends Controller
     {
         $evento = $this->resolveEventoAberto($publicoEvento);
 
-        return redirect(url("cursilho/$publicoEvento/{$evento->numero}"));
+        return redirect()->route('cursilho.start', [
+            'publicoEvento' => $publicoEvento,
+            'numero' => $evento->numero,
+        ]);
     }
 
     public function start(Request $request, string $publicoEvento, int $numero): RedirectResponse
@@ -536,7 +546,10 @@ class CursilhoController extends Controller
             return redirect($this->redirectToStep($publicoEvento, $numero, $step + 1));
         }
 
-        return redirect(url("cursilho/$publicoEvento/$numero/revisao"));
+        return redirect()->route('cursilho.revisao', [
+            'publicoEvento' => $publicoEvento,
+            'numero' => $numero,
+        ]);
     }
 
     public function review(Request $request, string $publicoEvento, int $numero): Response|RedirectResponse
@@ -583,13 +596,29 @@ class CursilhoController extends Controller
 
         $payload = $this->buildInscricaoPayload($evento, $wizard);
 
-        $inscricao = InscricaoCursilho::updateOrCreate(
-            [
-                'evento_id' => $payload['evento_id'],
-                'cpf' => $payload['cpf'],
-            ],
-            $payload
-        );
+        $inscricao = DB::transaction(function () use ($payload): ?InscricaoCursilho {
+            $cpfNormalizado = preg_replace('/\D+/', '', (string) ($payload['cpf'] ?? ''));
+
+            $duplicada = InscricaoCursilho::withTrashed()
+                ->where('evento_id', $payload['evento_id'])
+                ->where('cpf_normalizado', $cpfNormalizado)
+                ->exists();
+
+            if ($duplicada) {
+                return null;
+            }
+
+            return InscricaoCursilho::query()->create($payload);
+        });
+
+        if ($inscricao === null) {
+            $wizard['data']['duplicidade_bloqueada'] = true;
+            $this->putWizard($request, $publicoEvento, $numero, $wizard);
+
+            return redirect()->route('cursilho.inscricaoconfirmada', [
+                'publicoEvento' => $publicoEvento,
+            ]);
+        }
 
         $mailViewData = $this->buildMailViewData(
             $inscricao->fresh(),

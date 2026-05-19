@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Secretaria;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class StoreSecurityUserRequest extends FormRequest
@@ -25,8 +26,11 @@ class StoreSecurityUserRequest extends FormRequest
                 'confirmed',
                 Password::min(8)->letters()->mixedCase()->numbers(),
             ],
-            'roles' => ['nullable', 'array'],
-            'roles.*' => ['integer', 'exists:roles,id'],
+            'roles' => ['required', 'array', 'min:1'],
+            'roles.*' => [
+                'integer',
+                Rule::exists('roles', 'id')->where('active', true),
+            ],
         ];
     }
 }

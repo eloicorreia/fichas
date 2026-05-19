@@ -55,6 +55,8 @@ class EventoInscricaoService
             'pagamento_data' => (bool) ($data['pagamento_confirmado'] ?? false)
                 ? ($data['pagamento_data'] ?? null)
                 : null,
+            'pagamento_comprovante_base64' => $data['pagamento_comprovante_base64']
+                ?? $inscricao->pagamento_comprovante_base64,
         ])->save();
     }
 

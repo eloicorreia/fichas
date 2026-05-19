@@ -33,6 +33,22 @@ class InscricaoCpfValidationTest extends TestCase
             ->assertSessionHasErrors('cpf');
     }
 
+    public function test_banco_bloqueia_cpf_normalizado_duplicado_no_mesmo_evento(): void
+    {
+        $evento = $this->createEvento();
+        $this->createInscricao($evento, ['cpf' => '529.982.247-25']);
+
+        $this->expectException(\Illuminate\Database\QueryException::class);
+
+        \App\Models\InscricaoCursilho::query()->create($this->rawInscricaoPayload([
+            'evento_id' => $evento->id,
+            'tipo_evento' => $evento->tipo_evento,
+            'publico_evento' => $evento->publico_evento,
+            'numero_evento' => $evento->numero,
+            'cpf' => '52998224725',
+        ]));
+    }
+
     public function test_admin_cria_mesmo_cpf_em_evento_diferente(): void
     {
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.create']);
@@ -152,16 +168,20 @@ class InscricaoCpfValidationTest extends TestCase
         $this->assertSame('original', $inscricao->fresh()->pagamento_comprovante_base64);
     }
 
-    public function test_comprovante_nao_e_mass_assignable(): void
+    public function test_campos_de_pagamento_sao_mass_assignable(): void
     {
         $evento = $this->createEvento();
 
         $inscricao = \App\Models\InscricaoCursilho::query()->create($this->rawInscricaoPayload([
             'evento_id' => $evento->id,
+            'pagamento_confirmado' => true,
+            'pagamento_data' => now()->toDateString(),
             'pagamento_comprovante_base64' => 'sensivel',
         ]));
 
-        $this->assertNull($inscricao->fresh()->pagamento_comprovante_base64);
+        $this->assertTrue($inscricao->fresh()->pagamento_confirmado);
+        $this->assertSame(now()->toDateString(), $inscricao->fresh()->pagamento_data?->format('Y-m-d'));
+        $this->assertSame('sensivel', $inscricao->fresh()->pagamento_comprovante_base64);
     }
 
     public function test_usuario_com_inscricao_update_nao_altera_pagamento_pelo_update_geral(): void
@@ -192,11 +212,13 @@ class InscricaoCpfValidationTest extends TestCase
             ->put(route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]), [
                 'pagamento_confirmado' => true,
                 'pagamento_data' => $pagamentoData,
+                'pagamento_comprovante_base64' => 'data:application/pdf;base64,comprovante',
             ])
             ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
 
         $this->assertTrue($inscricao->fresh()->pagamento_confirmado);
         $this->assertSame($pagamentoData, $inscricao->fresh()->pagamento_data?->format('Y-m-d'));
+        $this->assertSame('data:application/pdf;base64,comprovante', $inscricao->fresh()->pagamento_comprovante_base64);
     }
 
     public function test_pagamento_confirmado_exige_data(): void

@@ -98,7 +98,7 @@
           <span>Passo 5 de 6 • Pastoral</span>
         </div>
 
-        <form class="form" method="POST" action="{{ url('cursilho/'.$sexo.'/'.$numero.'/passo/5') }}" novalidate>
+        <form class="form" method="POST" action="{{ route('cursilho.passo.5.store', ['publicoEvento' => $sexo, 'numero' => $numero]) }}" novalidate>
           @csrf
 
           <div class="field">
@@ -146,7 +146,7 @@
           </div>
 
           <div class="actions">
-            <a class="btn-link" href="{{ url('cursilho/'.$sexo.'/'.$numero.'/passo/4') }}">Voltar</a>
+            <a class="btn-link" href="{{ route('cursilho.passo.4', ['publicoEvento' => $sexo, 'numero' => $numero]) }}">Voltar</a>
             <button class="btn btn-primary" type="submit">Prosseguir</button>
           </div>
         </form>

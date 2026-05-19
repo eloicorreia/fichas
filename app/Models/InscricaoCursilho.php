@@ -56,6 +56,9 @@ class InscricaoCursilho extends Model
         'contato_familia_missa',
         'alimentacao_especial',
         'padrinho_madrinha_contato',
+        'pagamento_confirmado',
+        'pagamento_data',
+        'pagamento_comprovante_base64',
     ];
 
     protected function casts(): array

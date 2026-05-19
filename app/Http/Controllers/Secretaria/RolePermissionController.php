@@ -44,10 +44,10 @@ class RolePermissionController extends Controller
     {
         $permissionIds = $request->validated('permissions') ?? [];
 
-        if ($this->wouldRemoveRoleManageFromOnlyAdmin($role, $permissionIds)) {
+        if ($this->wouldRemoveCriticalPermissionFromOnlyAdmin($role, $permissionIds)) {
             return redirect()
                 ->route('secretaria.roles.index')
-                ->with('status', 'Não é possível remover role.manage do único papel administrador.');
+                ->with('status', 'Não é possível remover permissão administrativa crítica do único papel administrador.');
         }
 
         try {
@@ -77,18 +77,21 @@ class RolePermissionController extends Controller
     /**
      * @param  array<int, int|string>  $permissionIds
      */
-    private function wouldRemoveRoleManageFromOnlyAdmin(Role $role, array $permissionIds): bool
+    private function wouldRemoveCriticalPermissionFromOnlyAdmin(Role $role, array $permissionIds): bool
     {
         if ($role->name !== 'super-admin') {
             return false;
         }
 
-        $roleManageId = Permission::query()
-            ->where('name', 'role.manage')
-            ->where('active', true)
-            ->value('id');
+        $submittedIds = array_map('intval', $permissionIds);
 
-        if ($roleManageId === null || in_array((int) $roleManageId, array_map('intval', $permissionIds), true)) {
+        $missingCriticalPermission = Permission::query()
+            ->whereIn('name', Permission::CRITICAL_ADMIN_PERMISSIONS)
+            ->where('active', true)
+            ->whereNotIn('id', $submittedIds)
+            ->exists();
+
+        if (! $missingCriticalPermission) {
             return false;
         }
 
@@ -96,9 +99,9 @@ class RolePermissionController extends Controller
             ->whereKeyNot($role->id)
             ->where('active', true)
             ->whereHas('permissions', function ($query): void {
-                $query->where('permissions.name', 'role.manage')
+                $query->whereIn('permissions.name', Permission::CRITICAL_ADMIN_PERMISSIONS)
                     ->where('permissions.active', true);
-            })
+            }, '=', count(Permission::CRITICAL_ADMIN_PERMISSIONS))
             ->doesntExist();
     }
 }

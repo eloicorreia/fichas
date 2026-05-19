@@ -210,6 +210,33 @@ class AssembleiaPublicFlowTest extends TestCase
         ]);
     }
 
+    public function test_assembleia_bloqueia_cpf_criado_entre_passo_2_e_finalizacao(): void
+    {
+        Mail::fake();
+
+        $evento = $this->createEventoAssembleia(['numero' => 8212]);
+        $this->completeAssembleiaFlow($evento, [
+            'cpf' => '529.982.247-25',
+        ]);
+
+        $this->createInscricao($evento, [
+            'nome' => 'Inscricao Concorrente Assembleia',
+            'cpf' => '529.982.247-25',
+        ]);
+
+        $this->from(route('assembleia.revisao', $evento->numero))
+            ->post(route('assembleia.finalizar', $evento->numero))
+            ->assertRedirect(route('assembleia.revisao', $evento->numero))
+            ->assertSessionHasErrors('cpf');
+
+        $this->assertDatabaseCount('inscricoes_cursilho', 1);
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'evento_id' => $evento->id,
+            'nome' => 'Inscricao Concorrente Assembleia',
+            'cpf_normalizado' => '52998224725',
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */

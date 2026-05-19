@@ -1,6 +1,10 @@
 name: Coverage
 
 on:
+  pull_request:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -22,7 +26,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.3'
           extensions: bcmath, dom, fileinfo, mbstring, xml, xmlwriter
           coverage: xdebug
 
@@ -34,6 +38,12 @@ jobs:
           cp .env.example .env
           touch database/database.sqlite
           php artisan key:generate --ansi
+
+      - name: Run Composer Test Script
+        run: composer test
+
+      - name: Run Tests
+        run: php artisan test
 
       - name: Run Coverage
         run: php artisan test --coverage

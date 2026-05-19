@@ -10,6 +10,19 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Permission extends Model
 {
     /**
+     * @var array<int, string>
+     */
+    public const CRITICAL_ADMIN_PERMISSIONS = [
+        'dashboard.view',
+        'role.view',
+        'role.manage',
+        'permission.view',
+        'permission.manage',
+        'usuario.view',
+        'usuario.manage',
+    ];
+
+    /**
      * Nome da tabela associada ao model.
      *
      * @var string
@@ -48,5 +61,10 @@ class Permission extends Model
             'permission_id',
             'role_id'
         );
+    }
+
+    public function isCriticalAdminPermission(): bool
+    {
+        return in_array($this->name, self::CRITICAL_ADMIN_PERMISSIONS, true);
     }
 }
