@@ -346,6 +346,44 @@ class SecretariaInscricoesTest extends TestCase
             ->assertDontSee('data-testid="alterar-pagamento-inscricao"', false);
     }
 
+    public function test_formulario_pagamento_possui_confirmacao_visual(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
+        $evento = $this->createEvento();
+        $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertOk()
+            ->assertSee("onsubmit=\"return confirm('Deseja alterar o status de pagamento desta inscrição?');\"", false);
+    }
+
+    public function test_botao_pagamento_mostra_confirmar_quando_pendente(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
+        $evento = $this->createEvento();
+        $this->createInscricao($evento, ['pagamento_confirmado' => false]);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertOk()
+            ->assertSee('Confirmar pagamento')
+            ->assertDontSee('Desmarcar pagamento');
+    }
+
+    public function test_botao_pagamento_mostra_desmarcar_quando_confirmado(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
+        $evento = $this->createEvento();
+        $this->createInscricao($evento, ['pagamento_confirmado' => true]);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertOk()
+            ->assertSee('Desmarcar pagamento')
+            ->assertDontSee('Confirmar pagamento');
+    }
+
     public function test_exportacao_protege_campos_contra_csv_injection(): void
     {
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.export']);

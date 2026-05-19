@@ -307,7 +307,8 @@
                                 @elseif ($evento)
                                     @if ($podeAlterarPagamento)
                                         <form method="POST"
-                                              action="{{ route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]) }}">
+                                              action="{{ route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]) }}"
+                                              onsubmit="return confirm('Deseja alterar o status de pagamento desta inscrição?');">
                                             @csrf
                                             @method('PUT')
 
@@ -322,7 +323,7 @@
                                                 data-testid="alterar-pagamento-inscricao"
                                                 class="inline-flex rounded-lg border border-emerald-200 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50"
                                             >
-                                                Pagamento
+                                                {{ $inscricao->pagamento_confirmado ? 'Desmarcar pagamento' : 'Confirmar pagamento' }}
                                             </button>
                                         </form>
                                     @endif
@@ -356,7 +357,8 @@
                                 @elseif ($inscricao->evento)
                                     @if ($podeAlterarPagamento)
                                         <form method="POST"
-                                              action="{{ route('secretaria.eventos.inscricoes.pagamento.update', [$inscricao->evento, $inscricao]) }}">
+                                              action="{{ route('secretaria.eventos.inscricoes.pagamento.update', [$inscricao->evento, $inscricao]) }}"
+                                              onsubmit="return confirm('Deseja alterar o status de pagamento desta inscrição?');">
                                             @csrf
                                             @method('PUT')
 
@@ -371,7 +373,7 @@
                                                 data-testid="alterar-pagamento-inscricao"
                                                 class="inline-flex rounded-lg border border-emerald-200 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50"
                                             >
-                                                Pagamento
+                                                {{ $inscricao->pagamento_confirmado ? 'Desmarcar pagamento' : 'Confirmar pagamento' }}
                                             </button>
                                         </form>
                                     @endif
