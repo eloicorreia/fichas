@@ -26,6 +26,7 @@ class EventoInscricaoController extends Controller
     public function index(Request $request, InscricaoCursilhoQueryService $queryService): View
     {
         $filters = $queryService->resolveFilters($request);
+        $this->authorizeSituacaoFilter($request, $filters);
 
         $inscricoes = $queryService->build($filters)
             ->paginate(20)
@@ -41,6 +42,7 @@ class EventoInscricaoController extends Controller
     ): View {
         $filters = $queryService->resolveFilters($request);
         $filters['eventoId'] = (string) $evento->id;
+        $this->authorizeSituacaoFilter($request, $filters);
 
         $inscricoes = $queryService->build($filters)
             ->paginate(20)
@@ -55,6 +57,7 @@ class EventoInscricaoController extends Controller
         InscricaoExportService $exportService
     ): StreamedResponse {
         $filters = $queryService->resolveFilters($request);
+        $filters['situacao'] = 'ativas';
 
         Log::info('Exportação global de inscrições solicitada.', [
             'user_id' => $request->user()?->id,
@@ -78,6 +81,7 @@ class EventoInscricaoController extends Controller
     ): StreamedResponse {
         $filters = $queryService->resolveFilters($request);
         $filters['eventoId'] = (string) $evento->id;
+        $filters['situacao'] = 'ativas';
 
         Log::info('Exportação de inscrições por evento solicitada.', [
             'user_id' => $request->user()?->id,
@@ -244,6 +248,41 @@ class EventoInscricaoController extends Controller
         }
     }
 
+    public function restore(
+        Evento $evento,
+        InscricaoCursilho $inscricao,
+        Request $request,
+        EventoInscricaoService $service
+    ): RedirectResponse {
+        abort_if((int) $inscricao->evento_id !== (int) $evento->id, 404);
+
+        try {
+            DB::transaction(function () use ($evento, $inscricao, $service): void {
+                $service->restoreForEvento($evento, $inscricao);
+            });
+
+            Log::info('Inscrição restaurada com sucesso.', [
+                'evento_id' => $evento->id,
+                'inscricao_id' => $inscricao->id,
+                'user_id' => $request->user()?->id,
+            ]);
+
+            return redirect()
+                ->route('secretaria.eventos.inscricoes.index', $evento)
+                ->with('status', 'Inscrição restaurada com sucesso.');
+        } catch (Throwable $exception) {
+            Log::error('Erro ao restaurar inscrição.', [
+                'evento_id' => $evento->id,
+                'inscricao_id' => $inscricao->id,
+                'user_id' => $request->user()?->id,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+
+            throw $exception;
+        }
+    }
+
     /**
      * @param  array<string, string>  $filters
      */
@@ -261,9 +300,26 @@ class EventoInscricaoController extends Controller
             'eventoId' => $filters['eventoId'],
             'status' => $filters['status'],
             'pagamento' => $filters['pagamento'],
+            'situacao' => $filters['situacao'],
             'sort' => $filters['sort'],
             'dir' => $filters['dir'],
             'statusDisponiveis' => InscricaoCursilho::getStatusDisponiveis(),
         ]);
+    }
+
+    /**
+     * @param  array<string, string>  $filters
+     */
+    private function authorizeSituacaoFilter(Request $request, array &$filters): void
+    {
+        $user = $request->user();
+
+        if (
+            ($filters['situacao'] ?? 'ativas') !== 'ativas'
+            && ! $user?->hasPermission('inscricao.restore')
+            && ! $user?->hasRole('super-admin')
+        ) {
+            $filters['situacao'] = 'ativas';
+        }
     }
 }

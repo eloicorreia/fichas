@@ -8,6 +8,7 @@
     $eventoId = $eventoId ?? '';
     $status = $status ?? '';
     $pagamento = $pagamento ?? '';
+    $situacao = $situacao ?? 'ativas';
     $sort = $sort ?? 'nome';
     $dir = $dir ?? 'asc';
     $statusDisponiveis = $statusDisponiveis ?? [];
@@ -21,6 +22,7 @@
     $eventoContexto = $evento ?? $eventoSelecionado;
     $usuario = auth()->user();
     $podeIncluir = $usuario?->hasPermission('inscricao.create') || $usuario?->hasPermission('inscricao.review');
+    $podeRestaurar = $usuario?->hasPermission('inscricao.restore') || $usuario?->hasRole('super-admin');
 
     $baseRoute = $evento
         ? route('secretaria.eventos.inscricoes.index', $evento)
@@ -135,6 +137,18 @@
                 <option value="pendente" @selected($pagamento === 'pendente')>Pendente</option>
             </select>
 
+            @if ($podeRestaurar)
+                <select
+                    name="situacao"
+                    data-testid="situacao-inscricoes"
+                    class="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                >
+                    <option value="ativas" @selected($situacao === 'ativas')>Ativas</option>
+                    <option value="excluidas" @selected($situacao === 'excluidas')>Excluídas</option>
+                    <option value="todas" @selected($situacao === 'todas')>Todas</option>
+                </select>
+            @endif
+
             <button
                 type="submit"
                 class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -142,7 +156,7 @@
                 Buscar
             </button>
 
-            @if (filled($q) || filled($eventoId) || filled($status) || filled($pagamento))
+            @if (filled($q) || filled($eventoId) || filled($status) || filled($pagamento) || $situacao !== 'ativas')
                 <a
                     href="{{ $baseRoute }}"
                     class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -256,7 +270,28 @@
 
                         <td class="px-3 py-2.5">
                             <div class="flex justify-end gap-1.5">
-                                @if ($evento)
+                                @if ($inscricao->trashed())
+                                    @if ($podeRestaurar && ($evento || $inscricao->evento))
+                                        <form method="POST"
+                                              action="{{ route('secretaria.eventos.inscricoes.restore', [$evento ?? $inscricao->evento, $inscricao]) }}"
+                                              onsubmit="return confirm('Deseja restaurar esta inscrição?');">
+                                            @csrf
+                                            @method('PUT')
+
+                                            <button
+                                                type="submit"
+                                                data-testid="restaurar-inscricao"
+                                                class="inline-flex rounded-lg border border-emerald-200 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50"
+                                            >
+                                                Restaurar
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="inline-flex rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-400">
+                                            Excluída
+                                        </span>
+                                    @endif
+                                @elseif ($evento)
                                     <a
                                         href="{{ route('secretaria.eventos.inscricoes.edit', [$evento, $inscricao]) }}"
                                         class="inline-flex rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50"

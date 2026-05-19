@@ -268,4 +268,13 @@ Route::prefix('secretaria')->group(function () {
                 ->middleware('permission:inscricao.delete')
                 ->name('destroy');
         });
+
+    Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:inscricao.restore'])
+        ->prefix('eventos/{evento}/inscricoes')
+        ->name('secretaria.eventos.inscricoes.')
+        ->group(function () {
+            Route::put('/{inscricao}/restore', [EventoInscricaoController::class, 'restore'])
+                ->withTrashed()
+                ->name('restore');
+        });
 });

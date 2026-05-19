@@ -44,6 +44,26 @@ class PermissionSeederTest extends TestCase
         $this->assertTrue(Role::query()->where('name', 'secretaria')->first()->permissions()->where('permissions.name', 'inscricao.view')->exists());
     }
 
+    public function test_permission_seeder_cria_inscricao_payment(): void
+    {
+        Role::query()->create(['name' => 'secretaria', 'label' => 'Secretaria', 'active' => true]);
+
+        $this->seed(PermissionSeeder::class);
+
+        $this->assertDatabaseHas('permissions', ['name' => 'inscricao.payment']);
+        $this->assertTrue(Role::query()->where('name', 'secretaria')->first()->permissions()->where('permissions.name', 'inscricao.payment')->exists());
+    }
+
+    public function test_permission_seeder_cria_inscricao_restore(): void
+    {
+        Role::query()->create(['name' => 'secretaria', 'label' => 'Secretaria', 'active' => true]);
+
+        $this->seed(PermissionSeeder::class);
+
+        $this->assertDatabaseHas('permissions', ['name' => 'inscricao.restore']);
+        $this->assertTrue(Role::query()->where('name', 'secretaria')->first()->permissions()->where('permissions.name', 'inscricao.restore')->exists());
+    }
+
     public function test_permission_seeder_mantem_super_admin_com_todas(): void
     {
         $role = Role::query()->create(['name' => 'super-admin', 'label' => 'Super Admin', 'active' => true]);

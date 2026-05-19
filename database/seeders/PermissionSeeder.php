@@ -89,6 +89,12 @@ class PermissionSeeder extends Seeder
                 'active' => true,
             ],
             [
+                'name' => 'inscricao.restore',
+                'label' => 'Restaurar inscrições excluídas',
+                'module' => 'inscricao',
+                'active' => true,
+            ],
+            [
                 'name' => 'usuario.view',
                 'label' => 'Visualizar usuários',
                 'module' => 'usuario',
@@ -179,6 +185,7 @@ class PermissionSeeder extends Seeder
                     'inscricao.delete',
                     'inscricao.export',
                     'inscricao.payment',
+                    'inscricao.restore',
                     'usuario.view',
                 ])
             );

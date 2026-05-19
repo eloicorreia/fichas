@@ -20,6 +20,7 @@ class InscricaoCursilhoQueryService
         $eventoId = trim((string) $request->query('evento_id', ''));
         $pagamento = trim((string) $request->query('pagamento', ''));
         $status = trim((string) $request->query('status', ''));
+        $situacao = trim((string) $request->query('situacao', 'ativas'));
         $q = trim((string) $request->query('q', ''));
 
         if (mb_strlen($q) > 100) {
@@ -42,11 +43,16 @@ class InscricaoCursilhoQueryService
             $status = '';
         }
 
+        if (! in_array($situacao, ['ativas', 'excluidas', 'todas'], true)) {
+            $situacao = 'ativas';
+        }
+
         return [
             'q' => $q,
             'eventoId' => $eventoId,
             'status' => $status,
             'pagamento' => $pagamento,
+            'situacao' => $situacao,
             'sort' => $sort,
             'dir' => $dir,
         ];
@@ -60,32 +66,39 @@ class InscricaoCursilhoQueryService
     {
         $sortColumn = $this->sortMap()[$filters['sort']] ?? 'inscricoes_cursilho.nome';
 
-        return InscricaoCursilho::query()
+        $query = InscricaoCursilho::query()
             ->select('inscricoes_cursilho.*')
             ->with('evento:id,nome,numero')
-            ->leftJoin('eventos', 'eventos.id', '=', 'inscricoes_cursilho.evento_id')
-            ->when($filters['q'] !== '', function (Builder $query) use ($filters): void {
-                $query->where(function (Builder $subQuery) use ($filters): void {
-                    $like = '%'.$filters['q'].'%';
-                    $digits = preg_replace('/\D+/', '', $filters['q']);
+            ->leftJoin('eventos', 'eventos.id', '=', 'inscricoes_cursilho.evento_id');
 
-                    $subQuery->where('inscricoes_cursilho.nome', 'like', $like)
-                        ->orWhere('inscricoes_cursilho.nome_normalizado', 'like', mb_strtolower($like))
-                        ->orWhere('inscricoes_cursilho.cpf', 'like', $like)
-                        ->orWhere('inscricoes_cursilho.email', 'like', $like)
-                        ->orWhere('inscricoes_cursilho.telefone', 'like', $like)
-                        ->orWhere('eventos.nome', 'like', $like)
-                        ->orWhere('eventos.numero', 'like', $like);
+        if (($filters['situacao'] ?? 'ativas') === 'excluidas') {
+            $query->onlyTrashed();
+        } elseif (($filters['situacao'] ?? 'ativas') === 'todas') {
+            $query->withTrashed();
+        }
 
-                    if (is_string($digits) && $digits !== '') {
-                        if (strlen($digits) === 11) {
-                            $subQuery->orWhere('inscricoes_cursilho.cpf_normalizado', $digits);
-                        }
+        return $query->when($filters['q'] !== '', function (Builder $query) use ($filters): void {
+            $query->where(function (Builder $subQuery) use ($filters): void {
+                $like = '%'.$filters['q'].'%';
+                $digits = preg_replace('/\D+/', '', $filters['q']);
 
-                        $subQuery->orWhere('inscricoes_cursilho.telefone_normalizado', 'like', $digits.'%');
+                $subQuery->where('inscricoes_cursilho.nome', 'like', $like)
+                    ->orWhere('inscricoes_cursilho.nome_normalizado', 'like', mb_strtolower($like))
+                    ->orWhere('inscricoes_cursilho.cpf', 'like', $like)
+                    ->orWhere('inscricoes_cursilho.email', 'like', $like)
+                    ->orWhere('inscricoes_cursilho.telefone', 'like', $like)
+                    ->orWhere('eventos.nome', 'like', $like)
+                    ->orWhere('eventos.numero', 'like', $like);
+
+                if (is_string($digits) && $digits !== '') {
+                    if (strlen($digits) === 11) {
+                        $subQuery->orWhere('inscricoes_cursilho.cpf_normalizado', $digits);
                     }
-                });
-            })
+
+                    $subQuery->orWhere('inscricoes_cursilho.telefone_normalizado', 'like', $digits.'%');
+                }
+            });
+        })
             ->when($filters['eventoId'] !== '', function (Builder $query) use ($filters): void {
                 $query->where('inscricoes_cursilho.evento_id', (int) $filters['eventoId']);
             })

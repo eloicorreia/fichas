@@ -92,6 +92,21 @@ class EventoInscricaoService
         $inscricao->delete();
     }
 
+    public function restoreForEvento(Evento $evento, InscricaoCursilho $inscricao): void
+    {
+        if ((int) $inscricao->evento_id !== (int) $evento->id) {
+            abort(404);
+        }
+
+        if (! $inscricao->trashed()) {
+            throw ValidationException::withMessages([
+                'inscricao' => 'Esta inscrição não está excluída.',
+            ]);
+        }
+
+        $inscricao->restore();
+    }
+
     /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>

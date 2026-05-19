@@ -18,6 +18,7 @@ return new class extends Migration
             'inscricao.delete' => 'Excluir inscrições',
             'inscricao.export' => 'Exportar inscrições',
             'inscricao.payment' => 'Alterar pagamentos de inscrições',
+            'inscricao.restore' => 'Restaurar inscrições excluídas',
         ];
 
         foreach ($permissions as $name => $label) {

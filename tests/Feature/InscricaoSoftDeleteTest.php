@@ -70,6 +70,141 @@ class InscricaoSoftDeleteTest extends TestCase
         $this->assertStringNotContainsString('Inscricao Export Excluida', $content);
     }
 
+    public function test_usuario_com_inscricao_restore_ve_filtro_excluidas(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.restore']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['nome' => 'Inscricao Para Restaurar']);
+        $inscricao->delete();
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', [
+                'evento' => $evento,
+                'situacao' => 'excluidas',
+            ]))
+            ->assertOk()
+            ->assertSee('data-testid="situacao-inscricoes"', false)
+            ->assertSee('Inscricao Para Restaurar')
+            ->assertSee('data-testid="restaurar-inscricao"', false);
+    }
+
+    public function test_usuario_sem_inscricao_restore_nao_ve_excluidas(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['nome' => 'Inscricao Oculta']);
+        $inscricao->delete();
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', [
+                'evento' => $evento,
+                'situacao' => 'excluidas',
+            ]))
+            ->assertOk()
+            ->assertDontSee('data-testid="situacao-inscricoes"', false)
+            ->assertDontSee('Inscricao Oculta');
+    }
+
+    public function test_usuario_com_inscricao_restore_restaura_inscricao_excluida(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.restore']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento);
+        $inscricao->delete();
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.restore', [$evento, $inscricao]))
+            ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertSessionHas('status', 'Inscrição restaurada com sucesso.');
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'id' => $inscricao->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_usuario_sem_inscricao_restore_nao_restaura(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento);
+        $inscricao->delete();
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.restore', [$evento, $inscricao]))
+            ->assertForbidden();
+
+        $this->assertSoftDeleted('inscricoes_cursilho', ['id' => $inscricao->id]);
+    }
+
+    public function test_restore_nao_funciona_para_inscricao_de_outro_evento(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.restore']);
+        $evento = $this->createEvento(['numero' => 601]);
+        $outroEvento = $this->createEvento(['numero' => 602]);
+        $inscricao = $this->createInscricao($outroEvento);
+        $inscricao->delete();
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.restore', [$evento, $inscricao]))
+            ->assertNotFound();
+
+        $this->assertSoftDeleted('inscricoes_cursilho', ['id' => $inscricao->id]);
+    }
+
+    public function test_inscricao_restaurada_volta_a_aparecer_na_listagem(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.restore']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['nome' => 'Inscricao Restaurada Visivel']);
+        $inscricao->delete();
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.restore', [$evento, $inscricao]))
+            ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertOk()
+            ->assertSee('Inscricao Restaurada Visivel');
+    }
+
+    public function test_listagem_padrao_continua_ocultando_excluidas(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.restore']);
+        $evento = $this->createEvento();
+        $ativa = $this->createInscricao($evento, ['nome' => 'Inscricao Ativa Padrao']);
+        $excluida = $this->createInscricao($evento, ['nome' => 'Inscricao Excluida Padrao']);
+        $excluida->delete();
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertOk()
+            ->assertSee($ativa->nome)
+            ->assertDontSee('Inscricao Excluida Padrao');
+    }
+
+    public function test_exportacao_continua_nao_exportando_excluidas(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.export', 'inscricao.restore']);
+        $evento = $this->createEvento();
+
+        $this->createInscricao($evento, ['nome' => 'Inscricao Export Ativa']);
+        $excluida = $this->createInscricao($evento, ['nome' => 'Inscricao Export Mesmo Com Filtro']);
+        $excluida->delete();
+
+        $content = $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.export', [
+                'evento' => $evento,
+                'situacao' => 'todas',
+            ]))
+            ->assertOk()
+            ->streamedContent();
+
+        $this->assertStringContainsString('Inscricao Export Ativa', $content);
+        $this->assertStringNotContainsString('Inscricao Export Mesmo Com Filtro', $content);
+    }
+
     public function test_nao_recria_cpf_de_inscricao_soft_deleted_no_mesmo_evento(): void
     {
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.create']);
