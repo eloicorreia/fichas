@@ -55,7 +55,7 @@ class StoreEventoInscricaoRequest extends FormRequest
                         ->first();
 
                     if ($duplicada?->trashed()) {
-                        $fail('Já existe uma inscrição excluída para este CPF neste evento. Restaure a inscrição existente antes de reutilizar o CPF.');
+                        $fail('Já existe uma inscrição excluída para este CPF neste evento. Acesse a listagem do evento, filtre por Excluídas e restaure a inscrição existente.');
 
                         return;
                     }

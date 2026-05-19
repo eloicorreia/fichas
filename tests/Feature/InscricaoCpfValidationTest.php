@@ -186,16 +186,68 @@ class InscricaoCpfValidationTest extends TestCase
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
         $evento = $this->createEvento();
         $inscricao = $this->createInscricao($evento, ['pagamento_confirmado' => false]);
+        $pagamentoData = now()->toDateString();
 
         $this->actingAs($user)
             ->put(route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]), [
                 'pagamento_confirmado' => true,
-                'pagamento_data' => '2026-05-19',
+                'pagamento_data' => $pagamentoData,
             ])
             ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
 
         $this->assertTrue($inscricao->fresh()->pagamento_confirmado);
-        $this->assertSame('2026-05-19', $inscricao->fresh()->pagamento_data?->format('Y-m-d'));
+        $this->assertSame($pagamentoData, $inscricao->fresh()->pagamento_data?->format('Y-m-d'));
+    }
+
+    public function test_pagamento_confirmado_exige_data(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['pagamento_confirmado' => false]);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]), [
+                'pagamento_confirmado' => true,
+            ])
+            ->assertSessionHasErrors('pagamento_data');
+
+        $this->assertFalse($inscricao->fresh()->pagamento_confirmado);
+    }
+
+    public function test_pagamento_pendente_limpa_data(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, [
+            'pagamento_confirmado' => true,
+            'pagamento_data' => now()->subDay()->toDateString(),
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]), [
+                'pagamento_confirmado' => false,
+                'pagamento_data' => now()->toDateString(),
+            ])
+            ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
+
+        $this->assertFalse($inscricao->fresh()->pagamento_confirmado);
+        $this->assertNull($inscricao->fresh()->pagamento_data);
+    }
+
+    public function test_pagamento_data_futura_falha(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['pagamento_confirmado' => false]);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]), [
+                'pagamento_confirmado' => true,
+                'pagamento_data' => now()->addDay()->toDateString(),
+            ])
+            ->assertSessionHasErrors('pagamento_data');
+
+        $this->assertFalse($inscricao->fresh()->pagamento_confirmado);
     }
 
     public function test_usuario_sem_inscricao_payment_nao_altera_pagamento(): void

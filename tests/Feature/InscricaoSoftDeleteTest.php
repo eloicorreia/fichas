@@ -11,7 +11,9 @@ use Database\Seeders\PermissionSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Mockery;
 use RuntimeException;
 use Tests\Feature\Concerns\CreatesSecretariaData;
 use Tests\TestCase;
@@ -108,6 +110,37 @@ class InscricaoSoftDeleteTest extends TestCase
             ->assertDontSee('Inscricao Oculta');
     }
 
+    public function test_super_admin_com_permissoes_ve_botao_restaurar(): void
+    {
+        $role = Role::query()->create(['name' => 'super-admin', 'label' => 'Super Admin', 'active' => true]);
+        $this->seed(PermissionSeeder::class);
+
+        $user = User::factory()->create();
+        $user->roles()->sync([$role->id]);
+
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['nome' => 'Inscricao Super Admin Restore']);
+        $inscricao->delete();
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', [
+                'evento' => $evento,
+                'situacao' => 'excluidas',
+            ]))
+            ->assertOk()
+            ->assertSee('Inscricao Super Admin Restore')
+            ->assertSee('data-testid="restaurar-inscricao"', false);
+    }
+
+    public function test_view_de_inscricoes_nao_depende_de_has_role_super_admin(): void
+    {
+        $view = file_get_contents(resource_path('views/secretaria/inscricoes/index.blade.php'));
+
+        $this->assertIsString($view);
+        $this->assertStringNotContainsString("hasRole('super-admin')", $view);
+        $this->assertStringNotContainsString('hasRole("super-admin")', $view);
+    }
+
     public function test_usuario_com_inscricao_restore_restaura_inscricao_excluida(): void
     {
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.restore']);
@@ -124,6 +157,32 @@ class InscricaoSoftDeleteTest extends TestCase
             'id' => $inscricao->id,
             'deleted_at' => null,
         ]);
+    }
+
+    public function test_restore_registra_user_id_ip_e_user_agent(): void
+    {
+        Log::spy();
+
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.restore']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento);
+        $inscricao->delete();
+
+        $this->actingAs($user)
+            ->withHeader('User-Agent', 'RestoreFeature/1.0')
+            ->withServerVariables(['REMOTE_ADDR' => '203.0.113.20'])
+            ->put(route('secretaria.eventos.inscricoes.restore', [$evento, $inscricao]))
+            ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
+
+        Log::shouldHaveReceived('info')
+            ->with('Inscrição restaurada com sucesso.', Mockery::on(
+                fn (array $context): bool => $context['evento_id'] === $evento->id
+                    && $context['inscricao_id'] === $inscricao->id
+                    && $context['user_id'] === $user->id
+                    && $context['ip'] === '203.0.113.20'
+                    && $context['user_agent'] === 'RestoreFeature/1.0'
+            ))
+            ->once();
     }
 
     public function test_usuario_com_restore_sem_view_nao_restaura(): void
@@ -334,8 +393,27 @@ class InscricaoSoftDeleteTest extends TestCase
                 'cpf' => '529.982.247-25',
             ]))
             ->assertSessionHasErrors([
-                'cpf' => 'Já existe uma inscrição excluída para este CPF neste evento. Restaure a inscrição existente antes de reutilizar o CPF.',
+                'cpf' => 'Já existe uma inscrição excluída para este CPF neste evento. Acesse a listagem do evento, filtre por Excluídas e restaure a inscrição existente.',
             ]);
+    }
+
+    public function test_mensagem_cpf_duplicado_orienta_filtrar_excluidas_e_restaurar(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.create']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['cpf' => '529.982.247-25']);
+        $inscricao->delete();
+
+        $this->actingAs($user)
+            ->post(route('secretaria.eventos.inscricoes.store', $evento), $this->inscricaoPayload([
+                'cpf' => '529.982.247-25',
+            ]))
+            ->assertSessionHasErrors('cpf');
+
+        $message = session('errors')->first('cpf');
+
+        $this->assertStringContainsString('filtre por Excluídas', $message);
+        $this->assertStringContainsString('restaure a inscrição existente', $message);
     }
 
     public function test_migration_fk_falha_de_forma_controlada_com_inscricao_orfa(): void

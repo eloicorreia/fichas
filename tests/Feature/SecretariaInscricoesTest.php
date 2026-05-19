@@ -223,6 +223,35 @@ class SecretariaInscricoesTest extends TestCase
             ->assertSee('data-testid="exportar-inscricoes"', false);
     }
 
+    public function test_link_exportacao_nao_contem_situacao_excluidas(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.export', 'inscricao.restore']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['nome' => 'Inscricao Excluida Link Export']);
+        $inscricao->delete();
+
+        $content = $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', [
+                'evento' => $evento,
+                'situacao' => 'excluidas',
+            ]))
+            ->assertOk()
+            ->assertSee('data-testid="exportar-inscricoes"', false)
+            ->getContent();
+
+        $this->assertStringContainsString(
+            route('secretaria.eventos.inscricoes.export', $evento),
+            $content
+        );
+        $this->assertStringNotContainsString(
+            route('secretaria.eventos.inscricoes.export', [
+                'evento' => $evento,
+                'situacao' => 'excluidas',
+            ]),
+            $content
+        );
+    }
+
     public function test_botao_incluir_inscricao_nao_aparece_sem_create_ou_review(): void
     {
         $user = $this->userWithPermissions(['inscricao.view']);

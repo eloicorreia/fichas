@@ -52,7 +52,9 @@ class EventoInscricaoService
 
         $inscricao->forceFill([
             'pagamento_confirmado' => (bool) ($data['pagamento_confirmado'] ?? false),
-            'pagamento_data' => $data['pagamento_data'] ?? null,
+            'pagamento_data' => (bool) ($data['pagamento_confirmado'] ?? false)
+                ? ($data['pagamento_data'] ?? null)
+                : null,
         ])->save();
     }
 

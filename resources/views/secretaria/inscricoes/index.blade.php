@@ -24,15 +24,17 @@
     $podeIncluir = $usuario?->hasPermission('inscricao.create') || $usuario?->hasPermission('inscricao.review');
     $podeAlterar = $usuario?->hasPermission('inscricao.update') || $usuario?->hasPermission('inscricao.review');
     $podeExcluir = $usuario?->hasPermission('inscricao.delete');
-    $podeRestaurar = $usuario?->hasPermission('inscricao.restore') || $usuario?->hasRole('super-admin');
+    $podeRestaurar = $usuario?->hasPermission('inscricao.restore');
 
     $baseRoute = $evento
         ? route('secretaria.eventos.inscricoes.index', $evento)
         : route('secretaria.inscricoes.index');
 
+    $exportQuery = request()->except('situacao');
+
     $exportRoute = $evento
-        ? route('secretaria.eventos.inscricoes.export', ['evento' => $evento] + request()->query())
-        : route('secretaria.inscricoes.export', request()->query());
+        ? route('secretaria.eventos.inscricoes.export', ['evento' => $evento] + $exportQuery)
+        : route('secretaria.inscricoes.export', $exportQuery);
 
     $makeSortUrl = function (string $column) {
         $query = request()->query();

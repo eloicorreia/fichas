@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Secretaria;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Secretaria\StoreEventoInscricaoRequest;
+use App\Http\Requests\Secretaria\UpdateEventoInscricaoPagamentoRequest;
 use App\Http\Requests\Secretaria\UpdateEventoInscricaoRequest;
 use App\Models\Evento;
 use App\Models\InscricaoCursilho;
@@ -181,19 +182,14 @@ class EventoInscricaoController extends Controller
     public function updatePagamento(
         Evento $evento,
         InscricaoCursilho $inscricao,
-        Request $request,
+        UpdateEventoInscricaoPagamentoRequest $request,
         EventoInscricaoService $service
     ): RedirectResponse {
         abort_if((int) $inscricao->evento_id !== (int) $evento->id, 404);
 
-        $validated = $request->validate([
-            'pagamento_confirmado' => ['required', 'boolean'],
-            'pagamento_data' => ['nullable', 'date'],
-        ]);
-
         try {
-            DB::transaction(function () use ($evento, $inscricao, $validated, $service): void {
-                $service->updatePagamentoForEvento($evento, $inscricao, $validated);
+            DB::transaction(function () use ($evento, $inscricao, $request, $service): void {
+                $service->updatePagamentoForEvento($evento, $inscricao, $request->validated());
             });
 
             Log::info('Pagamento da inscrição atualizado com sucesso.', [
@@ -265,6 +261,8 @@ class EventoInscricaoController extends Controller
                 'evento_id' => $evento->id,
                 'inscricao_id' => $inscricao->id,
                 'user_id' => $request->user()?->id,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
             ]);
 
             return redirect()
@@ -275,6 +273,8 @@ class EventoInscricaoController extends Controller
                 'evento_id' => $evento->id,
                 'inscricao_id' => $inscricao->id,
                 'user_id' => $request->user()?->id,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
                 'exception' => $exception::class,
                 'message' => $exception->getMessage(),
             ]);
@@ -317,7 +317,6 @@ class EventoInscricaoController extends Controller
         if (
             ($filters['situacao'] ?? 'ativas') !== 'ativas'
             && ! $user?->hasPermission('inscricao.restore')
-            && ! $user?->hasRole('super-admin')
         ) {
             $filters['situacao'] = 'ativas';
         }
