@@ -55,9 +55,16 @@ class UpdateEventoInscricaoPagamentoRequest extends FormRequest
                     }
 
                     $base64 = substr($value, strlen($prefix));
+                    $decoded = base64_decode($base64, true);
 
-                    if ($base64 === '' || preg_match('/^[A-Za-z0-9+\/=\r\n]+$/', $base64) !== 1 || base64_decode($base64, true) === false) {
+                    if ($base64 === '' || preg_match('/^[A-Za-z0-9+\/=\r\n]+$/', $base64) !== 1 || $decoded === false) {
                         $fail('O comprovante informado não é um base64 válido.');
+
+                        return;
+                    }
+
+                    if (! $this->hasValidFileSignature($prefix, $decoded)) {
+                        $fail('O conteúdo do comprovante não corresponde ao tipo informado.');
                     }
                 },
             ],
@@ -74,5 +81,15 @@ class UpdateEventoInscricaoPagamentoRequest extends FormRequest
             'pagamento_data.before_or_equal' => 'A data do pagamento não pode ser futura.',
             'pagamento_comprovante_base64.max' => 'O comprovante não pode ultrapassar 1 MB.',
         ];
+    }
+
+    private function hasValidFileSignature(string $prefix, string $decoded): bool
+    {
+        return match ($prefix) {
+            'data:application/pdf;base64,' => str_starts_with($decoded, '%PDF'),
+            'data:image/png;base64,' => str_starts_with($decoded, "\x89PNG"),
+            'data:image/jpeg;base64,' => str_starts_with($decoded, "\xFF\xD8\xFF"),
+            default => false,
+        };
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Secretaria\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,7 +86,16 @@ class LoginController extends Controller
         }
 
         RateLimiter::hit($rateLimitKey, 600);
-        Password::sendResetLink($request->only('email'));
+
+        $email = Str::lower((string) $request->input('email'));
+        $user = User::query()
+            ->where('email', $email)
+            ->where('active', true)
+            ->first();
+
+        if ($user !== null) {
+            Password::sendResetLink(['email' => $email]);
+        }
 
         return back()->with('status', $statusMessage);
     }
@@ -107,7 +117,7 @@ class LoginController extends Controller
         ]);
 
         $status = Password::reset(
-            $validated,
+            array_merge($validated, ['active' => true]),
             function ($user, string $password): void {
                 $user->forceFill([
                     'password' => Hash::make($password),

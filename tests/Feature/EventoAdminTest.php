@@ -113,6 +113,20 @@ class EventoAdminTest extends TestCase
             ->assertSessionHasErrors('termino_em');
     }
 
+    public function test_valida_nome_obrigatorio_numero_unico_e_ativo_boolean(): void
+    {
+        $user = $this->userWithPermissions(['evento.create']);
+        $this->createEvento(['numero' => 9413]);
+
+        $this->actingAs($user)
+            ->post(route('secretaria.eventos.store'), $this->eventoPayloadAdmin([
+                'nome' => '',
+                'numero' => 9413,
+                'ativo' => 'talvez',
+            ]))
+            ->assertSessionHasErrors(['nome', 'numero', 'ativo']);
+    }
+
     public function test_valida_tipo_publico_e_status(): void
     {
         $user = $this->userWithPermissions(['evento.create']);
@@ -140,6 +154,25 @@ class EventoAdminTest extends TestCase
         $evento = Evento::query()->where('numero', 9407)->firstOrFail();
 
         $this->assertSame('<p>OK</p>', $evento->informacoes_finais);
+    }
+
+    public function test_campos_html_removem_onerror_javascript_e_mantem_tags_seguras(): void
+    {
+        $user = $this->userWithPermissions(['evento.create']);
+
+        $this->actingAs($user)
+            ->post(route('secretaria.eventos.store'), $this->eventoPayloadAdmin([
+                'numero' => 9414,
+                'informacoes_finais' => '<p onerror="alert(1)"><strong>OK</strong></p><a href="javascript:alert(1)">link</a><ul><li>Item</li></ul>',
+            ]))
+            ->assertRedirect(route('secretaria.eventos.index'));
+
+        $html = (string) Evento::query()->where('numero', 9414)->firstOrFail()->informacoes_finais;
+
+        $this->assertStringContainsString('<strong>OK</strong>', $html);
+        $this->assertStringContainsString('<ul><li>Item</li></ul>', $html);
+        $this->assertStringNotContainsString('onerror', $html);
+        $this->assertStringNotContainsString('javascript:', $html);
     }
 
     public function test_pode_alterar_nome_e_status_com_inscricoes(): void

@@ -93,6 +93,23 @@ class InscricaoCpfValidationTest extends TestCase
         }
     }
 
+    public function test_detector_nao_confunde_outra_unique_real_no_mysql(): void
+    {
+        if (config('database.default') !== 'mysql') {
+            $this->markTestSkipped('Este teste valida mensagem real de outra unique constraint no MySQL.');
+        }
+
+        \App\Models\User::factory()->create(['email' => 'unique-mysql@example.test']);
+
+        try {
+            \App\Models\User::factory()->create(['email' => 'unique-mysql@example.test']);
+
+            $this->fail('O MySQL deveria bloquear e-mail duplicado.');
+        } catch (QueryException $exception) {
+            $this->assertFalse(DatabaseConstraintDetector::isUniqueCpfInscricaoViolation($exception));
+        }
+    }
+
     public function test_admin_cria_mesmo_cpf_em_evento_diferente(): void
     {
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.create']);
@@ -357,13 +374,13 @@ class InscricaoCpfValidationTest extends TestCase
             ->put(route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]), [
                 'pagamento_confirmado' => true,
                 'pagamento_data' => $pagamentoData,
-                'pagamento_comprovante_base64' => 'data:application/pdf;base64,'.base64_encode('comprovante'),
+                'pagamento_comprovante_base64' => 'data:application/pdf;base64,'.base64_encode('%PDF-comprovante'),
             ])
             ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
 
         $this->assertTrue($inscricao->fresh()->pagamento_confirmado);
         $this->assertSame($pagamentoData, $inscricao->fresh()->pagamento_data?->format('Y-m-d'));
-        $this->assertSame('data:application/pdf;base64,'.base64_encode('comprovante'), $inscricao->fresh()->pagamento_comprovante_base64);
+        $this->assertSame('data:application/pdf;base64,'.base64_encode('%PDF-comprovante'), $inscricao->fresh()->pagamento_comprovante_base64);
     }
 
     public function test_comprovante_pdf_base64_valido_passa(): void
@@ -375,6 +392,21 @@ class InscricaoCpfValidationTest extends TestCase
     {
         $this->assertComprovanteValido('data:image/png;base64,'.base64_encode("\x89PNG\r\n"));
         $this->assertComprovanteValido('data:image/jpeg;base64,'.base64_encode("\xFF\xD8\xFF"));
+    }
+
+    public function test_comprovante_pdf_com_conteudo_que_nao_e_pdf_falha(): void
+    {
+        $this->assertComprovanteInvalidoPorAssinatura('data:application/pdf;base64,'.base64_encode('nao-pdf'));
+    }
+
+    public function test_comprovante_png_com_conteudo_que_nao_e_png_falha(): void
+    {
+        $this->assertComprovanteInvalidoPorAssinatura('data:image/png;base64,'.base64_encode('nao-png'));
+    }
+
+    public function test_comprovante_jpeg_com_conteudo_que_nao_e_jpeg_falha(): void
+    {
+        $this->assertComprovanteInvalidoPorAssinatura('data:image/jpeg;base64,'.base64_encode('nao-jpeg'));
     }
 
     public function test_comprovante_mimetype_invalido_falha(): void
@@ -409,6 +441,25 @@ class InscricaoCpfValidationTest extends TestCase
                 'pagamento_comprovante_base64' => 'data:application/pdf;base64,'.str_repeat('A', 1_398_105),
             ])
             ->assertSessionHasErrors('pagamento_comprovante_base64');
+
+        $this->assertNull($inscricao->fresh()->pagamento_comprovante_base64);
+    }
+
+    public function test_comprovante_base64_invalido_falha(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['pagamento_confirmado' => false]);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]), [
+                'pagamento_confirmado' => true,
+                'pagamento_data' => now()->toDateString(),
+                'pagamento_comprovante_base64' => 'data:application/pdf;base64,@@@',
+            ])
+            ->assertSessionHasErrors([
+                'pagamento_comprovante_base64' => 'O comprovante informado não é um base64 válido.',
+            ]);
 
         $this->assertNull($inscricao->fresh()->pagamento_comprovante_base64);
     }
@@ -548,5 +599,24 @@ class InscricaoCpfValidationTest extends TestCase
             ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
 
         $this->assertSame($comprovante, $inscricao->fresh()->pagamento_comprovante_base64);
+    }
+
+    private function assertComprovanteInvalidoPorAssinatura(string $comprovante): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['pagamento_confirmado' => false]);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]), [
+                'pagamento_confirmado' => true,
+                'pagamento_data' => now()->toDateString(),
+                'pagamento_comprovante_base64' => $comprovante,
+            ])
+            ->assertSessionHasErrors([
+                'pagamento_comprovante_base64' => 'O conteúdo do comprovante não corresponde ao tipo informado.',
+            ]);
+
+        $this->assertNull($inscricao->fresh()->pagamento_comprovante_base64);
     }
 }

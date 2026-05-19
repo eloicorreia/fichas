@@ -214,13 +214,37 @@ class UsuarioAdminTest extends TestCase
         $this->assertFalse($target->fresh()->active);
     }
 
+    public function test_havendo_outro_super_admin_ativo_pode_desativar_um_super_admin(): void
+    {
+        $user = $this->superAdminWithPermissions(['usuario.view', 'usuario.manage']);
+        $otherAdmin = $this->superAdminWithPermissions(['usuario.view', 'usuario.manage']);
+        $superAdminRole = Role::query()->where('name', 'super-admin')->firstOrFail();
+
+        $this->actingAs($otherAdmin)
+            ->put(route('secretaria.users.update', $user), [
+                'name' => $user->name,
+                'email' => $user->email,
+                'password' => '',
+                'password_confirmation' => '',
+                'active' => false,
+                'roles' => [$superAdminRole->id],
+            ])
+            ->assertRedirect(route('secretaria.users.index'));
+
+        $this->assertFalse($user->fresh()->active);
+        $this->assertTrue($otherAdmin->fresh()->active);
+    }
+
     /**
      * @param  array<int, string>  $permissions
      */
     private function superAdminWithPermissions(array $permissions): User
     {
         $user = User::factory()->create();
-        $role = Role::query()->create(['name' => 'super-admin', 'label' => 'Super Admin', 'active' => true]);
+        $role = Role::query()->firstOrCreate(
+            ['name' => 'super-admin'],
+            ['label' => 'Super Admin', 'active' => true]
+        );
 
         $permissionIds = collect($permissions)
             ->map(fn (string $permission): int => Permission::query()->updateOrCreate(

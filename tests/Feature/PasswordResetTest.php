@@ -31,6 +31,7 @@ class PasswordResetTest extends TestCase
             'password-reset|reset-ip@example.test|203.0.113.30',
             'password-reset|reset-ip@example.test|203.0.113.31',
             'password-reset|reset-outro@example.test|203.0.113.30',
+            'password-reset|reset-inativo@example.test|127.0.0.1',
         ] as $key) {
             RateLimiter::clear($key);
         }
@@ -65,6 +66,30 @@ class PasswordResetTest extends TestCase
 
         $this->assertDatabaseHas('password_reset_tokens', ['email' => $user->email]);
         Notification::assertSentTo($user, SecretariaResetPasswordNotification::class);
+    }
+
+    public function test_forgot_usuario_inativo_mantem_mensagem_generica_sem_enviar_notificacao(): void
+    {
+        Notification::fake();
+        $active = User::factory()->create(['email' => 'reset-active-message@example.test']);
+        $inactive = User::factory()->create(['email' => 'reset-inativo@example.test', 'active' => false]);
+
+        $activeResponse = $this->post(route('secretaria.password.email'), ['email' => $active->email]);
+        $inactiveResponse = $this->post(route('secretaria.password.email'), ['email' => $inactive->email]);
+        $missingResponse = $this->post(route('secretaria.password.email'), ['email' => 'reset-missing-message@example.test']);
+
+        $this->assertSame(
+            $activeResponse->getSession()->get('status'),
+            $inactiveResponse->getSession()->get('status')
+        );
+        $this->assertSame(
+            $activeResponse->getSession()->get('status'),
+            $missingResponse->getSession()->get('status')
+        );
+
+        Notification::assertSentTo($active, SecretariaResetPasswordNotification::class);
+        Notification::assertNotSentTo($inactive, SecretariaResetPasswordNotification::class);
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => $inactive->email]);
     }
 
     public function test_forgot_muitas_solicitacoes_bloqueiam_envio_sem_revelar_email(): void
@@ -134,6 +159,30 @@ class PasswordResetTest extends TestCase
         ])->assertRedirect(route('secretaria.login'));
 
         $this->assertTrue(Hash::check('nova-senha-segura', $user->fresh()->password));
+    }
+
+    public function test_reset_com_token_valido_de_usuario_inativo_nao_altera_senha_nem_remember_token(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'reset-inativo-token@example.test',
+            'active' => false,
+            'password' => Hash::make('senha-original'),
+            'remember_token' => 'token-original',
+        ]);
+        $token = Password::createToken($user);
+
+        $this->post(route('secretaria.password.update'), [
+            'email' => $user->email,
+            'token' => $token,
+            'password' => 'nova-senha-segura',
+            'password_confirmation' => 'nova-senha-segura',
+        ])->assertSessionHasErrors([
+            'email' => 'Não foi possível redefinir a senha com os dados informados.',
+        ]);
+
+        $fresh = $user->fresh();
+        $this->assertTrue(Hash::check('senha-original', $fresh->password));
+        $this->assertSame('token-original', $fresh->remember_token);
     }
 
     public function test_reset_com_token_invalido_falha(): void

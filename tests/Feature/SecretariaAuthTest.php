@@ -30,6 +30,7 @@ class SecretariaAuthTest extends TestCase
             'login|ip-email@example.test|203.0.113.10',
             'login|ip-email@example.test|203.0.113.20',
             'login|outro-ip-email@example.test|203.0.113.10',
+            'login|inativo-rate@example.test|127.0.0.1',
         ] as $key) {
             RateLimiter::clear($key);
         }
@@ -57,6 +58,22 @@ class SecretariaAuthTest extends TestCase
         ])->assertSessionHasErrors('email');
 
         $this->assertGuest();
+    }
+
+    public function test_tentativa_de_login_com_usuario_inativo_conta_como_falha(): void
+    {
+        $user = $this->userWithRoleAndPermissions('secretaria', ['dashboard.view'], [
+            'email' => 'inativo-rate@example.test',
+            'active' => false,
+        ]);
+
+        $this->post(route('secretaria.login.attempt'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+        $this->assertSame(1, RateLimiter::attempts('login|inativo-rate@example.test|127.0.0.1'));
     }
 
     public function test_login_com_credenciais_invalidas(): void
@@ -206,6 +223,29 @@ class SecretariaAuthTest extends TestCase
         $this->actingAs($user)
             ->get(route('secretaria.dashboard'))
             ->assertForbidden();
+    }
+
+    public function test_usuario_inativo_autenticado_nao_acessa_rotas_criticas_da_secretaria(): void
+    {
+        $user = $this->userWithRoleAndPermissions('super-admin', [
+            'dashboard.view',
+            'evento.view',
+            'inscricao.view',
+            'usuario.view',
+            'role.view',
+            'permission.view',
+        ], ['active' => false]);
+
+        foreach ([
+            route('secretaria.dashboard'),
+            route('secretaria.eventos.index'),
+            route('secretaria.inscricoes.index'),
+            route('secretaria.users.index'),
+            route('secretaria.roles.index'),
+            route('secretaria.permissions.index'),
+        ] as $url) {
+            $this->actingAs($user)->get($url)->assertForbidden();
+        }
     }
 
     public function test_forgot_password_nao_revela_email_existente(): void

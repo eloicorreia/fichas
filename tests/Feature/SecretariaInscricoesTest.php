@@ -413,6 +413,10 @@ class SecretariaInscricoesTest extends TestCase
         $this->createInscricao($evento, [
             'nome' => '=HYPERLINK("https://example.test")',
             'email' => '+conta@example.test',
+            'estado_civil' => '-SOLTEIRO',
+            'cidade' => '@Bauru',
+            'paroquia' => "\tParoquia",
+            'profissao' => "\rPlanilha",
         ]);
 
         $content = $this->actingAs($user)
@@ -422,6 +426,10 @@ class SecretariaInscricoesTest extends TestCase
 
         $this->assertStringContainsString('\'=HYPERLINK', $content);
         $this->assertStringContainsString('\'+conta@example.test', $content);
+        $this->assertStringContainsString('\'-SOLTEIRO', $content);
+        $this->assertStringContainsString('\'@Bauru', $content);
+        $this->assertStringContainsString("'\tParoquia", $content);
+        $this->assertStringContainsString("'\rPlanilha", $content);
     }
 
     public function test_inscricao_create_permite_criar_sem_inscricao_review(): void
