@@ -38,6 +38,24 @@ class EventoInscricaoService
         $inscricao->update($payload);
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function updatePagamentoForEvento(
+        Evento $evento,
+        InscricaoCursilho $inscricao,
+        array $data
+    ): void {
+        if ((int) $inscricao->evento_id !== (int) $evento->id) {
+            abort(404);
+        }
+
+        $inscricao->update([
+            'pagamento_confirmado' => (bool) ($data['pagamento_confirmado'] ?? false),
+            'pagamento_data' => $data['pagamento_data'] ?? null,
+        ]);
+    }
+
     public function deleteForEvento(Evento $evento, InscricaoCursilho $inscricao): void
     {
         if ((int) $inscricao->evento_id !== (int) $evento->id) {
@@ -80,6 +98,8 @@ class EventoInscricaoService
      */
     private function buildPayload(Evento $evento, array $data): array
     {
+        unset($data['pagamento_comprovante_base64']);
+
         $data['evento_id'] = $evento->id;
         $data['tipo_evento'] = $evento->tipo_evento;
         $data['publico_evento'] = $evento->publico_evento;

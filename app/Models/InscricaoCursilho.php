@@ -4,9 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class InscricaoCursilho extends Model
 {
+    use SoftDeletes;
+
     public const STATUS_CANDIDATO = 'CANDIDATO';
 
     public const STATUS_DESISTENTE = 'DESISTENTE';
@@ -26,9 +29,11 @@ class InscricaoCursilho extends Model
         'aceitou_termo',
         'finalizada_em',
         'nome',
+        'nome_normalizado',
         'data_nascimento',
         'estado_civil',
         'cpf',
+        'cpf_normalizado',
         'data_casamento',
         'cidade_casou',
         'igreja_casou',
@@ -36,6 +41,7 @@ class InscricaoCursilho extends Model
         'numero_filhos',
         'profissao',
         'telefone',
+        'telefone_normalizado',
         'email',
         'grau_instrucao',
         'cep',
@@ -55,7 +61,6 @@ class InscricaoCursilho extends Model
         'padrinho_madrinha_contato',
         'pagamento_confirmado',
         'pagamento_data',
-        'pagamento_comprovante_base64',
     ];
 
     protected function casts(): array
@@ -72,6 +77,15 @@ class InscricaoCursilho extends Model
             'pagamento_data' => 'date',
             'finalizada_em' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (InscricaoCursilho $inscricao): void {
+            $inscricao->cpf_normalizado = self::onlyDigits($inscricao->cpf);
+            $inscricao->telefone_normalizado = self::onlyDigits($inscricao->telefone);
+            $inscricao->nome_normalizado = $inscricao->nome ? mb_strtolower($inscricao->nome) : null;
+        });
     }
 
     public static function getStatusDisponiveis(): array
@@ -142,5 +156,12 @@ class InscricaoCursilho extends Model
         }
 
         return '-';
+    }
+
+    private static function onlyDigits(?string $value): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $value);
+
+        return is_string($digits) && $digits !== '' ? $digits : null;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Notifications\SecretariaResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -98,5 +99,10 @@ class User extends Authenticatable
                     ->where('permissions.active', true);
             })
             ->exists();
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new SecretariaResetPasswordNotification($token));
     }
 }

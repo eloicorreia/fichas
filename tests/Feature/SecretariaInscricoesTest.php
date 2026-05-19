@@ -345,9 +345,10 @@ class SecretariaInscricoesTest extends TestCase
     {
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.review']);
         $evento = $this->createEvento();
-        $inscricao = $this->createInscricao($evento, [
+        $inscricao = $this->createInscricao($evento);
+        $inscricao->forceFill([
             'pagamento_comprovante_base64' => 'data:application/pdf;base64,conteudo-sensivel',
-        ]);
+        ])->save();
 
         $this->actingAs($user)
             ->get(route('secretaria.eventos.inscricoes.edit', [$evento, $inscricao]))

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\Fichas\AssembleiaInscricaoInterna;
 use App\Mail\Fichas\AssembleiaParticipanteMail;
 use App\Models\InscricaoCursilho;
+use App\Rules\CpfValido;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -319,9 +320,9 @@ class AssembleiaController extends Controller
             ]);
         }
 
-        $duplicada = InscricaoCursilho::query()
+        $duplicada = InscricaoCursilho::withTrashed()
             ->where('evento_id', $evento->id)
-            ->where('cpf', $dados['cpf'])
+            ->where('cpf_normalizado', $this->onlyDigits($dados['cpf']))
             ->exists();
 
         if ($duplicada) {
@@ -499,35 +500,7 @@ class AssembleiaController extends Controller
 
     private function isValidCpf(?string $cpf): bool
     {
-        $cpf = $this->onlyDigits($cpf);
-
-        if (strlen($cpf) !== 11) {
-            return false;
-        }
-
-        if (preg_match('/^(\d)\1{10}$/', $cpf)) {
-            return false;
-        }
-
-        $sum = 0;
-
-        for ($i = 0, $w = 10; $i < 9; $i++, $w--) {
-            $sum += ((int) $cpf[$i]) * $w;
-        }
-
-        $d1 = 11 - ($sum % 11);
-        $d1 = $d1 >= 10 ? 0 : $d1;
-
-        $sum = 0;
-
-        for ($i = 0, $w = 11; $i < 10; $i++, $w--) {
-            $sum += ((int) $cpf[$i]) * $w;
-        }
-
-        $d2 = 11 - ($sum % 11);
-        $d2 = $d2 >= 10 ? 0 : $d2;
-
-        return $cpf[9] == (string) $d1 && $cpf[10] == (string) $d2;
+        return CpfValido::isValid($cpf);
     }
 
     private function isValidDataNascimento(?string $date): bool

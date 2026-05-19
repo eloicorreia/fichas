@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: bcmath, dom, fileinfo, mbstring, xml, xmlwriter
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare Laravel
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+
+      - name: Validate Composer
+        run: composer validate
+
+      - name: Check Platform Requirements
+        run: composer check-platform-reqs
+
+      - name: Run Tests
+        run: php artisan test
+
+      - name: Check Formatting
+        run: vendor/bin/pint --test
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build Assets
+        run: npm run build

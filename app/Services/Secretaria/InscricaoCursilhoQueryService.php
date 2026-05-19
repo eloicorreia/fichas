@@ -67,13 +67,22 @@ class InscricaoCursilhoQueryService
             ->when($filters['q'] !== '', function (Builder $query) use ($filters): void {
                 $query->where(function (Builder $subQuery) use ($filters): void {
                     $like = '%'.$filters['q'].'%';
+                    $digits = preg_replace('/\D+/', '', $filters['q']);
 
                     $subQuery->where('inscricoes_cursilho.nome', 'like', $like)
+                        ->orWhere('inscricoes_cursilho.nome_normalizado', 'like', mb_strtolower($like))
                         ->orWhere('inscricoes_cursilho.cpf', 'like', $like)
                         ->orWhere('inscricoes_cursilho.email', 'like', $like)
                         ->orWhere('inscricoes_cursilho.telefone', 'like', $like)
                         ->orWhere('eventos.nome', 'like', $like)
                         ->orWhere('eventos.numero', 'like', $like);
+
+                    if (is_string($digits) && $digits !== '') {
+                        $digitsLike = '%'.$digits.'%';
+
+                        $subQuery->orWhere('inscricoes_cursilho.cpf_normalizado', 'like', $digitsLike)
+                            ->orWhere('inscricoes_cursilho.telefone_normalizado', 'like', $digitsLike);
+                    }
                 });
             })
             ->when($filters['eventoId'] !== '', function (Builder $query) use ($filters): void {

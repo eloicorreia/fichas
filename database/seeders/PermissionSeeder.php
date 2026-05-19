@@ -160,7 +160,7 @@ class PermissionSeeder extends Seeder
         }
 
         if ($secretaria) {
-            $secretaria->permissions()->sync(
+            $secretaria->permissions()->syncWithoutDetaching(
                 $this->findPermissionIdsByNames([
                     'dashboard.view',
                     'evento.view',
@@ -178,7 +178,7 @@ class PermissionSeeder extends Seeder
         }
 
         if ($consulta) {
-            $consulta->permissions()->sync(
+            $consulta->permissions()->syncWithoutDetaching(
                 $this->findPermissionIdsByNames([
                     'dashboard.view',
                     'evento.view',

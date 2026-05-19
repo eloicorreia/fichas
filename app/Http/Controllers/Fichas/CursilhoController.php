@@ -7,6 +7,7 @@ use App\Mail\Fichas\CursilhoInscricaoInternaMail;
 use App\Mail\Fichas\CursilhoParticipanteMail;
 use App\Models\Evento;
 use App\Models\InscricaoCursilho;
+use App\Rules\CpfValido;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -392,9 +393,9 @@ class CursilhoController extends Controller
 
             $cpfFormatado = $this->formatCpf($cpfDigits);
 
-            $inscricaoExistente = InscricaoCursilho::query()
+            $inscricaoExistente = InscricaoCursilho::withTrashed()
                 ->where('evento_id', $evento->id)
-                ->where('cpf', $cpfFormatado)
+                ->where('cpf_normalizado', $cpfDigits)
                 ->exists();
 
             if ($inscricaoExistente) {
@@ -646,47 +647,12 @@ class CursilhoController extends Controller
 
     private function isValidCpf(?string $cpf): bool
     {
-        if ($cpf === null) {
-            return false;
-        }
-
-        $cpf = preg_replace('/\D+/', '', $cpf);
-
-        if (strlen($cpf) !== 11) {
-            return false;
-        }
-
-        if (preg_match('/^(\d)\1{10}$/', $cpf)) {
-            return false;
-        }
-
-        $sum = 0;
-
-        for ($i = 0, $w = 10; $i < 9; $i++, $w--) {
-            $sum += ((int) $cpf[$i]) * $w;
-        }
-
-        $d1 = 11 - ($sum % 11);
-        $d1 = ($d1 >= 10) ? 0 : $d1;
-
-        $sum = 0;
-
-        for ($i = 0, $w = 11; $i < 10; $i++, $w--) {
-            $sum += ((int) $cpf[$i]) * $w;
-        }
-
-        $d2 = 11 - ($sum % 11);
-        $d2 = ($d2 >= 10) ? 0 : $d2;
-
-        return $d1 === (int) $cpf[9] && $d2 === (int) $cpf[10];
+        return CpfValido::isValid($cpf);
     }
 
     private function formatCpf(string $cpfDigits): string
     {
-        return substr($cpfDigits, 0, 3).'.'
-            .substr($cpfDigits, 3, 3).'.'
-            .substr($cpfDigits, 6, 3).'-'
-            .substr($cpfDigits, 9, 2);
+        return CpfValido::format($cpfDigits);
     }
 
     private function isCasado(array $wizard): bool

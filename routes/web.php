@@ -130,6 +130,12 @@ Route::prefix('secretaria')->group(function () {
     Route::post('/esqueci-minha-senha', [LoginController::class, 'sendResetLink'])
         ->name('secretaria.password.email');
 
+    Route::get('/redefinir-senha/{token}', [LoginController::class, 'resetPassword'])
+        ->name('secretaria.password.reset');
+
+    Route::post('/redefinir-senha', [LoginController::class, 'updatePassword'])
+        ->name('secretaria.password.update');
+
     Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:dashboard.view'])
         ->group(function () {
             Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -139,24 +145,33 @@ Route::prefix('secretaria')->group(function () {
                 ->name('secretaria.logout');
         });
 
-    Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:evento.view'])
+    Route::middleware(['auth', 'role:secretaria,super-admin'])
         ->prefix('eventos')
         ->name('secretaria.eventos.')
         ->group(function () {
             Route::get('/', [EventoController::class, 'index'])
+                ->middleware('permission:evento.view')
                 ->name('index');
 
             Route::get('/criar', [EventoController::class, 'create'])
+                ->middleware('permission:evento.create')
                 ->name('create');
 
             Route::post('/', [EventoController::class, 'store'])
+                ->middleware('permission:evento.create')
                 ->name('store');
 
             Route::get('/{evento}/editar', [EventoController::class, 'edit'])
+                ->middleware('permission:evento.update')
                 ->name('edit');
 
             Route::put('/{evento}', [EventoController::class, 'update'])
+                ->middleware('permission:evento.update')
                 ->name('update');
+
+            Route::delete('/{evento}', [EventoController::class, 'destroy'])
+                ->middleware('permission:evento.delete')
+                ->name('destroy');
         });
 
     Route::middleware(['auth', 'role:super-admin', 'permission:role.view'])

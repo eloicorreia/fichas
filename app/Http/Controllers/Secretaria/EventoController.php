@@ -158,7 +158,7 @@ class EventoController extends Controller
 
     public function destroy(Evento $evento): RedirectResponse
     {
-        $evento->loadCount('inscricoes');
+        $evento->loadCount(['inscricoes' => fn ($query) => $query->withTrashed()]);
 
         if ($evento->inscricoes_count > 0) {
             return redirect()

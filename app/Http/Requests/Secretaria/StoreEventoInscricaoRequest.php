@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Secretaria;
 
 use App\Models\InscricaoCursilho;
+use App\Rules\CpfValido;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,6 +21,10 @@ class StoreEventoInscricaoRequest extends FormRequest
      */
     public function rules(): array
     {
+        $evento = $this->route('evento');
+        $inscricao = $this->route('inscricao');
+        $cpfNormalizado = preg_replace('/\D+/', '', (string) $this->input('cpf'));
+
         return [
             'status_ficha' => [
                 'required',
@@ -31,7 +36,29 @@ class StoreEventoInscricaoRequest extends FormRequest
             'nome' => ['required', 'string', 'max:120'],
             'data_nascimento' => ['required', 'date'],
             'estado_civil' => ['required', 'string', 'max:20'],
-            'cpf' => ['required', 'string', 'max:14'],
+            'cpf' => [
+                'required',
+                'string',
+                'max:14',
+                new CpfValido,
+                function (string $attribute, mixed $value, \Closure $fail) use ($cpfNormalizado, $evento, $inscricao): void {
+                    if ($cpfNormalizado === '') {
+                        $fail('CPF inválido.');
+
+                        return;
+                    }
+
+                    $exists = InscricaoCursilho::withTrashed()
+                        ->where('evento_id', $evento?->id)
+                        ->where('cpf_normalizado', $cpfNormalizado)
+                        ->when($inscricao, fn ($query) => $query->whereKeyNot($inscricao->id))
+                        ->exists();
+
+                    if ($exists) {
+                        $fail('Já existe uma inscrição para este CPF neste evento.');
+                    }
+                },
+            ],
             'data_casamento' => ['nullable', 'date'],
             'cidade_casou' => ['nullable', 'string', 'max:160'],
             'igreja_casou' => ['nullable', 'string', 'max:100'],

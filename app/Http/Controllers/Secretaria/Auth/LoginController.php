@@ -7,6 +7,10 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class LoginController extends Controller
 {
@@ -60,10 +64,49 @@ class LoginController extends Controller
             'email' => ['required', 'email'],
         ]);
 
+        Password::sendResetLink($request->only('email'));
+
         return back()->with(
             'status',
             'Se o e-mail informado estiver apto para recuperação, as instruções serão disponibilizadas.'
         );
+    }
+
+    public function resetPassword(string $token, Request $request): View
+    {
+        return view('secretaria.auth.reset-password', [
+            'token' => $token,
+            'email' => $request->query('email', ''),
+        ]);
+    }
+
+    public function updatePassword(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', PasswordRule::defaults()],
+        ]);
+
+        $status = Password::reset(
+            $validated,
+            function ($user, string $password): void {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return back()
+                ->withErrors(['email' => 'Não foi possível redefinir a senha com os dados informados.'])
+                ->onlyInput('email');
+        }
+
+        return redirect()
+            ->route('secretaria.login')
+            ->with('status', 'Senha redefinida com sucesso.');
     }
 
     /**
