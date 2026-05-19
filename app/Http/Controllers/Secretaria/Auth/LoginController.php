@@ -9,8 +9,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
+use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
@@ -32,9 +34,19 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        $rateLimitKey = $this->rateLimitKey($request, 'login');
+
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            throw ValidationException::withMessages([
+                'email' => 'Muitas tentativas de acesso. Aguarde um minuto e tente novamente.',
+            ]);
+        }
+
         $remember = $request->boolean('remember');
 
-        if (! Auth::attempt($credentials, $remember)) {
+        if (! Auth::attempt(array_merge($credentials, ['active' => true]), $remember)) {
+            RateLimiter::hit($rateLimitKey, 60);
+
             return back()
                 ->withErrors([
                     'email' => 'As credenciais informadas são inválidas.',
@@ -42,6 +54,7 @@ class LoginController extends Controller
                 ->onlyInput('email');
         }
 
+        RateLimiter::clear($rateLimitKey);
         $request->session()->regenerate();
 
         return redirect()->route('secretaria.dashboard');
@@ -64,12 +77,17 @@ class LoginController extends Controller
             'email' => ['required', 'email'],
         ]);
 
+        $rateLimitKey = $this->rateLimitKey($request, 'password-reset');
+        $statusMessage = 'Se o e-mail informado estiver apto para recuperação, as instruções serão disponibilizadas.';
+
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
+            return back()->with('status', $statusMessage);
+        }
+
+        RateLimiter::hit($rateLimitKey, 600);
         Password::sendResetLink($request->only('email'));
 
-        return back()->with(
-            'status',
-            'Se o e-mail informado estiver apto para recuperação, as instruções serão disponibilizadas.'
-        );
+        return back()->with('status', $statusMessage);
     }
 
     public function resetPassword(string $token, Request $request): View
@@ -120,5 +138,10 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('secretaria.login');
+    }
+
+    private function rateLimitKey(Request $request, string $prefix): string
+    {
+        return $prefix.'|'.Str::lower((string) $request->input('email')).'|'.$request->ip();
     }
 }

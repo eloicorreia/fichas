@@ -28,11 +28,10 @@ trait CreatesSecretariaData
     {
         $user = User::factory()->create();
 
-        $role = Role::query()->create([
-            'name' => 'secretaria',
-            'label' => 'Secretaria',
-            'active' => true,
-        ]);
+        $role = Role::query()->firstOrCreate(
+            ['name' => 'secretaria'],
+            ['label' => 'Secretaria', 'active' => true]
+        );
 
         $permissionIds = collect($permissions)
             ->map(fn (string $permission): int => Permission::query()->updateOrCreate(

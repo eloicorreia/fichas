@@ -26,6 +26,10 @@ class EnsureUserHasRole
             abort(401);
         }
 
+        if (! $user->active) {
+            abort(403);
+        }
+
         if (empty($roles)) {
             abort(500, 'Nenhum papel foi informado para o middleware de role.');
         }

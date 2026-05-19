@@ -95,6 +95,7 @@ class AuditLogTest extends TestCase
                 'email' => 'audit-target-updated@example.test',
                 'password' => '',
                 'password_confirmation' => '',
+                'active' => true,
                 'roles' => [$role->id],
             ])
             ->assertRedirect(route('secretaria.users.index'));
@@ -197,6 +198,7 @@ class AuditLogTest extends TestCase
             'email' => 'audit-user@example.test',
             'password' => 'Senha123',
             'password_confirmation' => 'Senha123',
+            'active' => true,
             'roles' => [],
         ], $overrides);
     }

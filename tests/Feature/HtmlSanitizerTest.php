@@ -40,6 +40,15 @@ class HtmlSanitizerTest extends TestCase
         $this->assertStringNotContainsString('javascript:', (string) $html);
     }
 
+    public function test_remove_onerror(): void
+    {
+        $html = app(HtmlSanitizerService::class)->sanitize('<p onerror="alert(1)">Seguro</p><img src=x onerror="alert(2)">');
+
+        $this->assertStringContainsString('<p>Seguro</p>', (string) $html);
+        $this->assertStringNotContainsString('onerror', (string) $html);
+        $this->assertStringNotContainsString('alert', (string) $html);
+    }
+
     public function test_mantem_tags_permitidas(): void
     {
         $html = app(HtmlSanitizerService::class)->sanitize('<p><strong>Importante</strong></p><ul><li>Item</li></ul>');
@@ -121,6 +130,32 @@ class HtmlSanitizerTest extends TestCase
         foreach ($this->htmlFields() as $field) {
             $this->assertNull($evento->{$field});
         }
+    }
+
+    public function test_view_publica_nao_renderiza_script_executavel(): void
+    {
+        $user = $this->userWithPermissions(['evento.create']);
+
+        $this->actingAs($user)
+            ->post(route('secretaria.eventos.store'), $this->eventoPayloadAdmin([
+                'numero' => 9304,
+                'informacoes_finais' => '<p><strong>Seguro</strong></p><script>alert(1)</script><a href="javascript:alert(1)">link</a>',
+            ]))
+            ->assertRedirect(route('secretaria.eventos.index'));
+
+        $evento = Evento::query()->where('numero', 9304)->firstOrFail();
+
+        $html = view('fichas.cursilho.finalizado', [
+            'evento' => $evento,
+            'publicoEvento' => 'homens',
+            'sexo' => 'homens',
+            'sexoLabel' => 'Homens',
+            'numero' => $evento->numero,
+        ])->render();
+
+        $this->assertStringContainsString('<strong>Seguro</strong>', $html);
+        $this->assertStringNotContainsString('<script', $html);
+        $this->assertStringNotContainsString('javascript:', $html);
     }
 
     /**

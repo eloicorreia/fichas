@@ -26,8 +26,14 @@ O workflow `Coverage` em `.github/workflows/coverage.yml` roda em `push` para `m
 - `coverage`: suíte geral em SQLite, com Xdebug e relatório de coverage.
 - `mysql-critical`: suíte crítica em MySQL 8, com PHP 8.3, `pdo_mysql`, `APP_ENV=testing` e `php artisan migrate:fresh --force`.
 
-O relatório de coverage ainda não exige percentual mínimo por enquanto.
+O relatório de coverage ainda não exige percentual mínimo porque a medição local atual não tem driver de coverage e a meta não deve ser aplicada no escuro.
 
 Cobertura atual neste ambiente: não calculada, porque o PHP local não tem Xdebug/PCOV carregado.
 
-Meta: quando a medição do CI ou de um ambiente local com Xdebug/PCOV confirmar cobertura igual ou superior a 70%, atualizar o workflow para usar `php artisan test --coverage --min=70`.
+Meta incremental:
+
+1. Quando o CI confirmar cobertura igual ou superior a 70%, atualizar para `php artisan test --coverage --min=70`.
+2. Depois de estabilizar 75%, atualizar para `--min=75`.
+3. Depois de estabilizar 80%, atualizar para `--min=80`.
+
+Se a cobertura medida ficar abaixo de 80%, aplicar apenas o maior `--min` que já esteja confirmado como seguro pelo CI para não criar falsa garantia nem bloquear correções urgentes indevidamente.

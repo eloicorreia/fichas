@@ -143,6 +143,12 @@ class SecurityUserController extends Controller
                 ->with('status', 'Não é possível remover o último super administrador.');
         }
 
+        if ($this->wouldDisableLastActiveSuperAdmin($user, $data)) {
+            return redirect()
+                ->route('secretaria.users.index')
+                ->with('status', 'Não é possível desativar o último super administrador ativo.');
+        }
+
         try {
             DB::transaction(function () use ($user, $data, $roleIds): void {
                 $user->update($data);
@@ -190,6 +196,29 @@ class SecurityUserController extends Controller
 
         return User::query()
             ->whereKeyNot($user->id)
+            ->whereHas('roles', function ($query): void {
+                $query->where('roles.name', 'super-admin')
+                    ->where('roles.active', true);
+            })
+            ->doesntExist();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function wouldDisableLastActiveSuperAdmin(User $user, array $data): bool
+    {
+        if (! $user->active || ($data['active'] ?? true)) {
+            return false;
+        }
+
+        if (! $user->hasRole('super-admin')) {
+            return false;
+        }
+
+        return User::query()
+            ->whereKeyNot($user->id)
+            ->where('active', true)
             ->whereHas('roles', function ($query): void {
                 $query->where('roles.name', 'super-admin')
                     ->where('roles.active', true);

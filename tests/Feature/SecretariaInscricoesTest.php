@@ -188,6 +188,27 @@ class SecretariaInscricoesTest extends TestCase
         $this->assertStringNotContainsString('Fora do Evento', $content);
     }
 
+    public function test_exportacao_preserva_acentos_virgula_e_quebra_de_linha(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.export']);
+        $evento = $this->createEvento(['nome' => 'Evento São José']);
+
+        $this->createInscricao($evento, [
+            'nome' => 'João, da Silva',
+            'cidade' => "Bauru\nCentro",
+            'email' => 'joao@example.test',
+        ]);
+
+        $content = $this->actingAs($user)
+            ->get(route('secretaria.inscricoes.export'))
+            ->assertOk()
+            ->streamedContent();
+
+        $this->assertStringContainsString('Evento São José', $content);
+        $this->assertStringContainsString('"João, da Silva"', $content);
+        $this->assertStringContainsString("\"Bauru\nCentro\"", $content);
+    }
+
     public function test_usuario_sem_inscricao_export_nao_consegue_exportar(): void
     {
         $user = $this->userWithPermissions(['inscricao.view']);

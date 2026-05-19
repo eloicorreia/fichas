@@ -27,6 +27,10 @@ class EnsureUserHasPermission
             abort(401);
         }
 
+        if (! $user->active) {
+            abort(403);
+        }
+
         $permissions = array_filter($permissions, fn (string $permission): bool => filled($permission));
 
         if ($permissions === []) {

@@ -57,6 +57,38 @@
     </div>
 
     <div class="lg:col-span-2">
+        <label class="mb-2 block text-sm font-semibold text-slate-700">Situação</label>
+
+        <div class="flex flex-wrap gap-3">
+            <label class="inline-flex items-center gap-2 rounded-xl border border-slate-100 px-4 py-3 text-sm font-semibold text-slate-700">
+                <input
+                    type="radio"
+                    name="active"
+                    value="1"
+                    @checked((string) old('active', $user->exists ? (int) $user->active : 1) === '1')
+                    class="h-4 w-4 border-slate-300 text-sky-700 focus:ring-sky-500"
+                >
+                Ativo
+            </label>
+
+            <label class="inline-flex items-center gap-2 rounded-xl border border-slate-100 px-4 py-3 text-sm font-semibold text-slate-700">
+                <input
+                    type="radio"
+                    name="active"
+                    value="0"
+                    @checked((string) old('active', $user->exists ? (int) $user->active : 1) === '0')
+                    class="h-4 w-4 border-slate-300 text-sky-700 focus:ring-sky-500"
+                >
+                Inativo
+            </label>
+        </div>
+
+        @error('active')
+            <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
+        @enderror
+    </div>
+
+    <div class="lg:col-span-2">
         <label class="mb-2 block text-sm font-semibold text-slate-700">Papéis</label>
 
         <div class="grid gap-3 md:grid-cols-2">

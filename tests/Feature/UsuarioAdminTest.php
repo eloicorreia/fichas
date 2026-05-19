@@ -60,6 +60,7 @@ class UsuarioAdminTest extends TestCase
                 'email' => 'alvo-atualizado@example.test',
                 'password' => '',
                 'password_confirmation' => '',
+                'active' => true,
                 'roles' => [$role->id],
             ])
             ->assertRedirect(route('secretaria.users.index'));
@@ -173,6 +174,46 @@ class UsuarioAdminTest extends TestCase
         $this->assertTrue($user->fresh()->roles()->where('roles.name', 'super-admin')->exists());
     }
 
+    public function test_nao_desativa_ultimo_super_admin_ativo(): void
+    {
+        $user = $this->superAdminWithPermissions(['usuario.view', 'usuario.manage']);
+        $superAdminRole = Role::query()->where('name', 'super-admin')->firstOrFail();
+
+        $this->actingAs($user)
+            ->put(route('secretaria.users.update', $user), [
+                'name' => $user->name,
+                'email' => $user->email,
+                'password' => '',
+                'password_confirmation' => '',
+                'active' => false,
+                'roles' => [$superAdminRole->id],
+            ])
+            ->assertRedirect(route('secretaria.users.index'))
+            ->assertSessionHas('status', 'Não é possível desativar o último super administrador ativo.');
+
+        $this->assertTrue($user->fresh()->active);
+    }
+
+    public function test_pode_desativar_usuario_comum(): void
+    {
+        $user = $this->superAdminWithPermissions(['usuario.view', 'usuario.manage']);
+        $target = User::factory()->create(['email' => 'comum@example.test']);
+        $role = Role::query()->create(['name' => 'secretaria-comum', 'label' => 'Secretaria Comum', 'active' => true]);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.users.update', $target), [
+                'name' => $target->name,
+                'email' => $target->email,
+                'password' => '',
+                'password_confirmation' => '',
+                'active' => false,
+                'roles' => [$role->id],
+            ])
+            ->assertRedirect(route('secretaria.users.index'));
+
+        $this->assertFalse($target->fresh()->active);
+    }
+
     /**
      * @param  array<int, string>  $permissions
      */
@@ -205,6 +246,7 @@ class UsuarioAdminTest extends TestCase
             'email' => 'novo@example.test',
             'password' => 'Senha123',
             'password_confirmation' => 'Senha123',
+            'active' => true,
             'roles' => [],
         ], $overrides);
     }

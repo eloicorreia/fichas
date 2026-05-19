@@ -26,6 +26,7 @@ class StoreSecurityUserRequest extends FormRequest
                 'confirmed',
                 Password::min(8)->letters()->mixedCase()->numbers(),
             ],
+            'active' => ['required', 'boolean'],
             'roles' => ['required', 'array', 'min:1'],
             'roles.*' => [
                 'integer',
