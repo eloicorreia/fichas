@@ -181,26 +181,28 @@ Route::prefix('secretaria')->group(function () {
             Route::get('/', [RoleController::class, 'index'])
                 ->name('index');
 
-            Route::get('/criar', [RoleController::class, 'create'])
-                ->name('create');
+            Route::middleware('permission:role.manage')->group(function () {
+                Route::get('/criar', [RoleController::class, 'create'])
+                    ->name('create');
 
-            Route::post('/', [RoleController::class, 'store'])
-                ->name('store');
+                Route::post('/', [RoleController::class, 'store'])
+                    ->name('store');
 
-            Route::get('/{role}/editar', [RoleController::class, 'edit'])
-                ->name('edit');
+                Route::get('/{role}/editar', [RoleController::class, 'edit'])
+                    ->name('edit');
 
-            Route::put('/{role}', [RoleController::class, 'update'])
-                ->name('update');
+                Route::put('/{role}', [RoleController::class, 'update'])
+                    ->name('update');
 
-            Route::delete('/{role}', [RoleController::class, 'destroy'])
-                ->name('destroy');
+                Route::delete('/{role}', [RoleController::class, 'destroy'])
+                    ->name('destroy');
 
-            Route::get('/{role}/permissoes', [RolePermissionController::class, 'edit'])
-                ->name('permissions.edit');
+                Route::get('/{role}/permissoes', [RolePermissionController::class, 'edit'])
+                    ->name('permissions.edit');
 
-            Route::put('/{role}/permissoes', [RolePermissionController::class, 'update'])
-                ->name('permissions.update');
+                Route::put('/{role}/permissoes', [RolePermissionController::class, 'update'])
+                    ->name('permissions.update');
+            });
         });
 
     Route::middleware(['auth', 'role:super-admin', 'permission:permission.view'])
@@ -208,11 +210,14 @@ Route::prefix('secretaria')->group(function () {
         ->name('secretaria.permissions.')
         ->group(function () {
             Route::get('/', [PermissionController::class, 'index'])->name('index');
-            Route::get('/criar', [PermissionController::class, 'create'])->name('create');
-            Route::post('/', [PermissionController::class, 'store'])->name('store');
-            Route::get('/{permission}/editar', [PermissionController::class, 'edit'])->name('edit');
-            Route::put('/{permission}', [PermissionController::class, 'update'])->name('update');
-            Route::delete('/{permission}', [PermissionController::class, 'destroy'])->name('destroy');
+
+            Route::middleware('permission:permission.manage')->group(function () {
+                Route::get('/criar', [PermissionController::class, 'create'])->name('create');
+                Route::post('/', [PermissionController::class, 'store'])->name('store');
+                Route::get('/{permission}/editar', [PermissionController::class, 'edit'])->name('edit');
+                Route::put('/{permission}', [PermissionController::class, 'update'])->name('update');
+                Route::delete('/{permission}', [PermissionController::class, 'destroy'])->name('destroy');
+            });
         });
 
     Route::middleware(['auth', 'role:super-admin', 'permission:usuario.view'])

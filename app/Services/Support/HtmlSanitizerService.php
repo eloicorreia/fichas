@@ -111,6 +111,12 @@ class HtmlSanitizerService
 
             $tagName = strtolower($childNode->tagName);
 
+            if (in_array($tagName, ['script', 'style'], true)) {
+                $parentNode->removeChild($childNode);
+
+                continue;
+            }
+
             if (! in_array($tagName, $this->allowedTags, true)) {
                 $this->unwrapNode($childNode);
 
