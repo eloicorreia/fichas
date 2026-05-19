@@ -142,6 +142,74 @@ class EventoAdminTest extends TestCase
         $this->assertSame('<p>OK</p>', $evento->informacoes_finais);
     }
 
+    public function test_pode_alterar_nome_e_status_com_inscricoes(): void
+    {
+        $user = $this->userWithPermissions(['evento.update']);
+        $evento = $this->createEvento(['numero' => 9408, 'status' => Evento::STATUS_ABERTO]);
+        $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.update', $evento), $this->eventoPayloadAdmin([
+                'numero' => 9408,
+                'nome' => 'Evento Renomeado',
+                'status' => Evento::STATUS_FECHADO,
+            ]))
+            ->assertRedirect(route('secretaria.eventos.index'));
+
+        $this->assertDatabaseHas('eventos', [
+            'id' => $evento->id,
+            'nome' => 'Evento Renomeado',
+            'status' => Evento::STATUS_FECHADO,
+        ]);
+    }
+
+    public function test_nao_altera_tipo_evento_com_inscricoes(): void
+    {
+        $user = $this->userWithPermissions(['evento.update']);
+        $evento = $this->createEvento(['numero' => 9409]);
+        $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.update', $evento), $this->eventoPayloadAdmin([
+                'numero' => 9409,
+                'tipo_evento' => Evento::TIPO_EVENTO_ENCONTRO,
+            ]))
+            ->assertSessionHasErrors('tipo_evento');
+
+        $this->assertSame(Evento::TIPO_EVENTO_CURSILHO, $evento->fresh()->tipo_evento);
+    }
+
+    public function test_nao_altera_publico_evento_com_inscricoes(): void
+    {
+        $user = $this->userWithPermissions(['evento.update']);
+        $evento = $this->createEvento(['numero' => 9410]);
+        $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.update', $evento), $this->eventoPayloadAdmin([
+                'numero' => 9410,
+                'publico_evento' => Evento::PUBLICO_MULHERES,
+            ]))
+            ->assertSessionHasErrors('publico_evento');
+
+        $this->assertSame(Evento::PUBLICO_HOMENS, $evento->fresh()->publico_evento);
+    }
+
+    public function test_nao_altera_numero_evento_com_inscricoes_se_afetar_url_publica(): void
+    {
+        $user = $this->userWithPermissions(['evento.update']);
+        $evento = $this->createEvento(['numero' => 9411]);
+        $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.update', $evento), $this->eventoPayloadAdmin([
+                'numero' => 9412,
+            ]))
+            ->assertSessionHasErrors('numero');
+
+        $this->assertSame(9411, $evento->fresh()->numero);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>

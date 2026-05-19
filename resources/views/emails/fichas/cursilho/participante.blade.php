@@ -64,7 +64,7 @@
 
                             <div style="padding:16px;">
                                 <p style="margin:0 0 12px;font-size:15px;line-height:1.7;">
-                                    <strong>Queridos irmãos e irmãs,</strong>
+                                    <strong>{{ $inscricao['nome'] ?? 'Queridos irmãos e irmãs' }},</strong>
                                 </p>
 
                                 <p style="margin:0 0 12px;font-size:15px;line-height:1.7;">

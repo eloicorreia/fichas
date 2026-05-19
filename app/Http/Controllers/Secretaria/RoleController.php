@@ -101,8 +101,16 @@ class RoleController extends Controller
 
     public function update(UpdateRoleRequest $request, Role $role): RedirectResponse
     {
+        $data = $request->validated();
+
+        if ($role->name === 'super-admin' && ($data['active'] ?? true) == false && $this->isOnlyActiveSuperAdminRole($role)) {
+            return redirect()
+                ->route('secretaria.roles.index')
+                ->with('status', 'Não é possível desativar o último papel super-admin.');
+        }
+
         try {
-            DB::transaction(fn (): bool => $role->update($request->validated()));
+            DB::transaction(fn (): bool => $role->update($data));
 
             Log::info('Role atualizada com sucesso.', [
                 'role_id' => $role->id,
@@ -126,6 +134,12 @@ class RoleController extends Controller
     public function destroy(Role $role): RedirectResponse
     {
         $role->loadCount(['users', 'permissions']);
+
+        if ($role->name === 'super-admin' && $this->isOnlyActiveSuperAdminRole($role)) {
+            return redirect()
+                ->route('secretaria.roles.index')
+                ->with('status', 'Não é possível excluir o último papel super-admin.');
+        }
 
         if ($role->users_count > 0) {
             return redirect()
@@ -159,5 +173,20 @@ class RoleController extends Controller
 
             throw $exception;
         }
+    }
+
+    private function isOnlyActiveSuperAdminRole(Role $role): bool
+    {
+        return $role->users()
+            ->whereHas('roles', function ($query): void {
+                $query->where('roles.name', 'super-admin')
+                    ->where('roles.active', true);
+            })
+            ->exists()
+            && Role::query()
+                ->where('name', 'super-admin')
+                ->where('active', true)
+                ->whereKeyNot($role->id)
+                ->doesntExist();
     }
 }

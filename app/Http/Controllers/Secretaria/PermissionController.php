@@ -117,8 +117,16 @@ class PermissionController extends Controller
 
     public function update(UpdatePermissionRequest $request, Permission $permission): RedirectResponse
     {
+        $data = $request->validated();
+
+        if (($data['active'] ?? true) == false && $this->isCriticalAdminPermission($permission)) {
+            return redirect()
+                ->route('secretaria.permissions.index')
+                ->with('status', 'Não é possível desativar permissão administrativa crítica.');
+        }
+
         try {
-            DB::transaction(fn (): bool => $permission->update($request->validated()));
+            DB::transaction(fn (): bool => $permission->update($data));
 
             Log::info('Permissão atualizada com sucesso.', [
                 'permission_id' => $permission->id,
@@ -137,6 +145,16 @@ class PermissionController extends Controller
 
             throw $exception;
         }
+    }
+
+    private function isCriticalAdminPermission(Permission $permission): bool
+    {
+        return in_array($permission->name, [
+            'dashboard.view',
+            'usuario.manage',
+            'role.manage',
+            'permission.manage',
+        ], true);
     }
 
     public function destroy(Permission $permission): RedirectResponse

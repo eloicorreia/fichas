@@ -119,6 +119,21 @@ class UsuarioAdminTest extends TestCase
         $this->assertTrue($target->fresh()->roles()->whereKey($role->id)->exists());
     }
 
+    public function test_nao_remove_role_super_admin_do_ultimo_admin(): void
+    {
+        $user = $this->superAdminWithPermissions(['usuario.view', 'usuario.manage']);
+        $secretaria = Role::query()->create(['name' => 'secretaria-extra', 'label' => 'Secretaria Extra', 'active' => true]);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.users.roles.update', $user), [
+                'roles' => [$secretaria->id],
+            ])
+            ->assertRedirect(route('secretaria.users.index'))
+            ->assertSessionHas('status', 'Não é possível remover o último super administrador.');
+
+        $this->assertTrue($user->fresh()->roles()->where('roles.name', 'super-admin')->exists());
+    }
+
     /**
      * @param  array<int, string>  $permissions
      */

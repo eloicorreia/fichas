@@ -104,6 +104,61 @@ class MailNotificationTest extends TestCase
         $this->assertStringContainsString('MARIA TESTE', (new AssembleiaInscricaoInterna($assembleiaData))->render());
     }
 
+    public function test_email_cursilho_participante_contem_nome_evento_numero(): void
+    {
+        $html = (new CursilhoParticipanteMail($this->mailData([
+            'numero' => 85,
+            'sexoLabel' => 'Homens',
+            'inscricao' => ['nome' => 'JOAO TESTE', 'numero_evento' => 85],
+        ])))->render();
+
+        $this->assertStringContainsString('85º Cursilho', $html);
+        $this->assertStringContainsString('HOMENS', $html);
+    }
+
+    public function test_email_cursilho_interno_contem_nome_cpf_telefone(): void
+    {
+        $html = (new CursilhoInscricaoInternaMail($this->mailData([
+            'inscricao' => [
+                'nome' => 'JOAO TESTE',
+                'cpf' => '529.982.247-25',
+                'telefone_formatado' => '(14) 99999-9999',
+            ],
+        ])))->render();
+
+        $this->assertStringContainsString('JOAO TESTE', $html);
+        $this->assertStringContainsString('529.982.247-25', $html);
+        $this->assertStringContainsString('(14) 99999-9999', $html);
+    }
+
+    public function test_email_assembleia_participante_contem_nome_evento_numero(): void
+    {
+        $html = (new AssembleiaParticipanteMail($this->mailData([
+            'numero' => 2026,
+            'sexoLabel' => 'Assembleia',
+            'inscricao' => ['nome' => 'MARIA TESTE', 'numero_evento' => 2026],
+        ])))->render();
+
+        $this->assertStringContainsString('MARIA TESTE', $html);
+        $this->assertStringContainsString('Assembleia Diocesana 2026', $html);
+    }
+
+    public function test_email_assembleia_interno_contem_nome_cpf_telefone(): void
+    {
+        $html = (new AssembleiaInscricaoInterna($this->mailData([
+            'numero' => 2026,
+            'inscricao' => [
+                'nome' => 'MARIA TESTE',
+                'cpf' => '111.444.777-35',
+                'telefone_formatado' => '(14) 98888-7777',
+            ],
+        ])))->render();
+
+        $this->assertStringContainsString('MARIA TESTE', $html);
+        $this->assertStringContainsString('111.444.777-35', $html);
+        $this->assertStringContainsString('(14) 98888-7777', $html);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */

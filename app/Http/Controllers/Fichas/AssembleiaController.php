@@ -406,6 +406,8 @@ class AssembleiaController extends Controller
                 'data_nascimento_br' => $this->formatDateBr($inscricao->data_nascimento),
                 'estado_civil' => $inscricao->estado_civil,
                 'cpf' => $inscricao->cpf,
+                'telefone' => $inscricao->telefone,
+                'telefone_formatado' => $this->formatPhone($inscricao->telefone),
                 'email' => $inscricao->email,
                 'cep' => $inscricao->cep,
                 'endereco' => $inscricao->endereco,
@@ -568,6 +570,25 @@ class AssembleiaController extends Controller
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    private function formatPhone(?string $phone): ?string
+    {
+        if ($phone === null || $phone === '') {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        if (strlen($digits) === 10) {
+            return preg_replace('/(\d{2})(\d{4})(\d{4})/', '($1) $2-$3', $digits);
+        }
+
+        if (strlen($digits) === 11) {
+            return preg_replace('/(\d{2})(\d{5})(\d{4})/', '($1) $2-$3', $digits);
+        }
+
+        return $phone;
     }
 
     private function noCacheView(string $view, array $data): Response

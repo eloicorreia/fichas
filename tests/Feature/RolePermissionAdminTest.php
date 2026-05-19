@@ -147,6 +147,67 @@ class RolePermissionAdminTest extends TestCase
         $this->assertTrue($role->fresh()->permissions()->where('permissions.name', 'custom.keep')->exists());
     }
 
+    public function test_nao_remove_ultimo_super_admin(): void
+    {
+        $user = $this->superAdminWithPermissions(['role.view', 'role.manage']);
+        $role = Role::query()->where('name', 'super-admin')->firstOrFail();
+
+        $this->actingAs($user)
+            ->put(route('secretaria.roles.update', $role), [
+                'name' => 'super-admin',
+                'label' => 'Super Admin',
+                'active' => false,
+            ])
+            ->assertRedirect(route('secretaria.roles.index'))
+            ->assertSessionHas('status', 'Não é possível desativar o último papel super-admin.');
+
+        $this->assertTrue($role->fresh()->active);
+    }
+
+    public function test_nao_desativa_permission_critica_de_admin(): void
+    {
+        $user = $this->superAdminWithPermissions(['permission.view', 'permission.manage']);
+        $permission = Permission::query()->updateOrCreate(
+            ['name' => 'role.manage'],
+            ['label' => 'Gerenciar papéis', 'module' => 'role', 'active' => true]
+        );
+
+        $this->actingAs($user)
+            ->put(route('secretaria.permissions.update', $permission), [
+                'name' => 'role.manage',
+                'label' => 'Gerenciar papéis',
+                'module' => 'role',
+                'active' => false,
+            ])
+            ->assertRedirect(route('secretaria.permissions.index'))
+            ->assertSessionHas('status', 'Não é possível desativar permissão administrativa crítica.');
+
+        $this->assertTrue($permission->fresh()->active);
+    }
+
+    public function test_nao_remove_role_manage_do_unico_admin(): void
+    {
+        $user = $this->superAdminWithPermissions(['role.view', 'role.manage']);
+        $role = Role::query()->where('name', 'super-admin')->firstOrFail();
+        $roleManage = Permission::query()->where('name', 'role.manage')->firstOrFail();
+        $roleView = Permission::query()->where('name', 'role.view')->firstOrFail();
+        $dashboard = Permission::query()->updateOrCreate(
+            ['name' => 'dashboard.view'],
+            ['label' => 'Dashboard', 'module' => 'dashboard', 'active' => true]
+        );
+
+        $role->permissions()->sync([$roleView->id, $roleManage->id, $dashboard->id]);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.roles.permissions.update', $role), [
+                'permissions' => [$roleView->id, $dashboard->id],
+            ])
+            ->assertRedirect(route('secretaria.roles.index'))
+            ->assertSessionHas('status', 'Não é possível remover role.manage do único papel administrador.');
+
+        $this->assertTrue($role->fresh()->permissions()->where('permissions.name', 'role.manage')->exists());
+    }
+
     /**
      * @param  array<int, string>  $permissions
      */

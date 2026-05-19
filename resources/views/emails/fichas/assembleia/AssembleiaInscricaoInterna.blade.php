@@ -82,6 +82,10 @@
                 <td style="padding:8px 0;">{{ $inscricao['cpf'] ?? '-' }}</td>
               </tr>
               <tr>
+                <td style="padding:8px 0; font-weight:700; vertical-align:top;">Telefone</td>
+                <td style="padding:8px 0;">{{ $inscricao['telefone_formatado'] ?? $inscricao['telefone'] ?? '-' }}</td>
+              </tr>
+              <tr>
                 <td style="padding:8px 0; font-weight:700; vertical-align:top;">E-mail</td>
                 <td style="padding:8px 0;">{{ $inscricao['email'] ?? '-' }}</td>
               </tr>

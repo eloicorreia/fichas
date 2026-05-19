@@ -7,6 +7,7 @@ namespace App\Http\Requests\Secretaria;
 use App\Models\Evento;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateEventoRequest extends FormRequest
 {
@@ -65,6 +66,29 @@ class UpdateEventoRequest extends FormRequest
             'observacoes_internas' => ['nullable', 'string'],
             'inicio_descricao' => ['nullable', 'string', 'max:100'],
             'final_descricao' => ['nullable', 'string', 'max:100'],
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                /** @var Evento $evento */
+                $evento = $this->route('evento');
+
+                if (! $evento->inscricoes()->withTrashed()->exists()) {
+                    return;
+                }
+
+                foreach (['tipo_evento', 'publico_evento', 'numero'] as $field) {
+                    if ($this->input($field) != $evento->getAttribute($field)) {
+                        $validator->errors()->add(
+                            $field,
+                            'Este campo não pode ser alterado porque o evento possui inscrições vinculadas.'
+                        );
+                    }
+                }
+            },
         ];
     }
 }

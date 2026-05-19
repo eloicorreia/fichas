@@ -9,6 +9,7 @@ use App\Mail\Fichas\AssembleiaParticipanteMail;
 use App\Models\Evento;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use RuntimeException;
 use Tests\Feature\Concerns\CreatesSecretariaData;
 use Tests\TestCase;
 
@@ -94,6 +95,121 @@ class AssembleiaPublicFlowTest extends TestCase
             ->assertRedirect('/fichas/naodisponivel');
     }
 
+    public function test_assembleia_nao_finaliza_sem_passos_obrigatorios(): void
+    {
+        $evento = $this->createEventoAssembleia(['numero' => 8206]);
+
+        $this->post(route('assembleia.finalizar', $evento->numero))
+            ->assertRedirect(route('assembleia.passo.1', $evento->numero));
+
+        $this->startAssembleia($evento);
+        $this->post(route('assembleia.passo.1.store', $evento->numero), ['agree' => '1']);
+
+        $this->post(route('assembleia.finalizar', $evento->numero))
+            ->assertRedirect(route('assembleia.passo.2', $evento->numero));
+    }
+
+    public function test_assembleia_bloqueia_cpf_duplicado_no_mesmo_evento(): void
+    {
+        $evento = $this->createEventoAssembleia(['numero' => 8207]);
+        $this->createInscricao($evento, ['cpf' => '529.982.247-25']);
+
+        $this->startAssembleia($evento);
+        $this->post(route('assembleia.passo.1.store', $evento->numero), ['agree' => '1']);
+
+        $this->post(route('assembleia.passo.2.store', $evento->numero), $this->assembleiaStep2Payload([
+            'cpf' => '52998224725',
+        ]))->assertSessionHasErrors('cpf');
+    }
+
+    public function test_assembleia_sem_email_nao_envia_email_participante(): void
+    {
+        Mail::fake();
+
+        $evento = $this->createEventoAssembleia(['numero' => 8208]);
+        $this->completeAssembleiaFlow($evento, ['email' => '']);
+
+        $this->post(route('assembleia.finalizar', $evento->numero))
+            ->assertRedirect(route('assembleia.finalizado', $evento->numero));
+
+        Mail::assertNotSent(AssembleiaParticipanteMail::class);
+        Mail::assertSent(AssembleiaInscricaoInterna::class);
+    }
+
+    public function test_assembleia_falha_email_participante_nao_impede_finalizacao(): void
+    {
+        Mail::shouldReceive('to')->andReturnUsing(fn (string $to) => new class($to)
+        {
+            public function __construct(private string $to) {}
+
+            public function send(object $mailable): void
+            {
+                if ($this->to === 'falha@example.test') {
+                    throw new RuntimeException('SMTP indisponível');
+                }
+            }
+        });
+
+        $evento = $this->createEventoAssembleia(['numero' => 8209]);
+        $this->completeAssembleiaFlow($evento, ['email' => 'falha@example.test']);
+
+        $this->post(route('assembleia.finalizar', $evento->numero))
+            ->assertRedirect(route('assembleia.finalizado', $evento->numero));
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'evento_id' => $evento->id,
+            'cpf_normalizado' => '52998224725',
+        ]);
+    }
+
+    public function test_assembleia_falha_email_interno_nao_impede_finalizacao(): void
+    {
+        Mail::shouldReceive('to')->andReturnUsing(fn (string $to) => new class($to)
+        {
+            public function __construct(private string $to) {}
+
+            public function send(object $mailable): void
+            {
+                if ($this->to === 'inscricao@mccbauru.com.br') {
+                    throw new RuntimeException('SMTP indisponível');
+                }
+            }
+        });
+
+        $evento = $this->createEventoAssembleia(['numero' => 8210]);
+        $this->completeAssembleiaFlow($evento);
+
+        $this->post(route('assembleia.finalizar', $evento->numero))
+            ->assertRedirect(route('assembleia.finalizado', $evento->numero));
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'evento_id' => $evento->id,
+            'cpf_normalizado' => '52998224725',
+        ]);
+    }
+
+    public function test_assembleia_normaliza_nome_cpf_telefone_ao_finalizar(): void
+    {
+        Mail::fake();
+
+        $evento = $this->createEventoAssembleia(['numero' => 8211]);
+        $this->completeAssembleiaFlow($evento, [
+            'nome' => '  Participante Normalizado  ',
+            'cpf' => '52998224725',
+        ]);
+
+        $this->post(route('assembleia.finalizar', $evento->numero));
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'evento_id' => $evento->id,
+            'nome' => 'PARTICIPANTE NORMALIZADO',
+            'cpf' => '529.982.247-25',
+            'cpf_normalizado' => '52998224725',
+            'telefone_normalizado' => null,
+            'nome_normalizado' => 'participante normalizado',
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */
@@ -115,12 +231,12 @@ class AssembleiaPublicFlowTest extends TestCase
             ->assertRedirect(route('assembleia.passo.1', $evento->numero));
     }
 
-    private function completeAssembleiaFlow(Evento $evento): void
+    private function completeAssembleiaFlow(Evento $evento, array $step2Overrides = []): void
     {
         $this->startAssembleia($evento);
         $this->post(route('assembleia.passo.1.store', $evento->numero), ['agree' => '1'])
             ->assertRedirect(route('assembleia.passo.2', $evento->numero));
-        $this->post(route('assembleia.passo.2.store', $evento->numero), $this->assembleiaStep2Payload())
+        $this->post(route('assembleia.passo.2.store', $evento->numero), $this->assembleiaStep2Payload($step2Overrides))
             ->assertRedirect(route('assembleia.revisao', $evento->numero));
     }
 

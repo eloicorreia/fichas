@@ -73,6 +73,69 @@ class HtmlSanitizerTest extends TestCase
         $this->assertStringNotContainsString('javascript:', (string) $evento->orientacoes_participante);
     }
 
+    public function test_todos_campos_html_do_evento_removem_script_e_javascript_mantendo_tags_seguras(): void
+    {
+        $user = $this->userWithPermissions(['evento.create']);
+
+        $payload = $this->eventoPayloadAdmin(['numero' => 9302]);
+
+        foreach ($this->htmlFields() as $field) {
+            $payload[$field] = '<p><strong>Seguro</strong></p><ul><li>Item</li></ul><script>alert(1)</script><a href="javascript:alert(1)">Link</a>';
+        }
+
+        $this->actingAs($user)
+            ->post(route('secretaria.eventos.store'), $payload)
+            ->assertRedirect(route('secretaria.eventos.index'));
+
+        $evento = Evento::query()->where('numero', 9302)->firstOrFail();
+
+        foreach ($this->htmlFields() as $field) {
+            $html = (string) $evento->{$field};
+
+            $this->assertStringContainsString('<strong>Seguro</strong>', $html);
+            $this->assertStringContainsString('<ul><li>Item</li></ul>', $html);
+            $this->assertStringNotContainsString('<script', $html);
+            $this->assertStringNotContainsString('alert(1)', $html);
+            $this->assertStringNotContainsString('javascript:', $html);
+        }
+    }
+
+    public function test_todos_campos_html_do_evento_aceitam_null_e_string_vazia(): void
+    {
+        $user = $this->userWithPermissions(['evento.create']);
+
+        $payload = $this->eventoPayloadAdmin([
+            'numero' => 9303,
+            'orientacoes_participante' => null,
+            'encerramento_info' => '',
+            'informacoes_finais' => '   ',
+            'observacoes_internas' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('secretaria.eventos.store'), $payload)
+            ->assertRedirect(route('secretaria.eventos.index'));
+
+        $evento = Evento::query()->where('numero', 9303)->firstOrFail();
+
+        foreach ($this->htmlFields() as $field) {
+            $this->assertNull($evento->{$field});
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function htmlFields(): array
+    {
+        return [
+            'orientacoes_participante',
+            'encerramento_info',
+            'informacoes_finais',
+            'observacoes_internas',
+        ];
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>

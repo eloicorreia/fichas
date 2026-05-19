@@ -137,6 +137,12 @@ class SecurityUserController extends Controller
             unset($data['password']);
         }
 
+        if ($this->wouldRemoveLastSuperAdmin($user, $roleIds)) {
+            return redirect()
+                ->route('secretaria.users.index')
+                ->with('status', 'Não é possível remover o último super administrador.');
+        }
+
         try {
             DB::transaction(function () use ($user, $data, $roleIds): void {
                 $user->update($data);
@@ -161,5 +167,33 @@ class SecurityUserController extends Controller
 
             throw $exception;
         }
+    }
+
+    /**
+     * @param  array<int, int|string>  $roleIds
+     */
+    private function wouldRemoveLastSuperAdmin(User $user, array $roleIds): bool
+    {
+        if (! $user->hasRole('super-admin')) {
+            return false;
+        }
+
+        $keepsSuperAdminRole = Role::query()
+            ->whereIn('id', $roleIds)
+            ->where('name', 'super-admin')
+            ->where('active', true)
+            ->exists();
+
+        if ($keepsSuperAdminRole) {
+            return false;
+        }
+
+        return User::query()
+            ->whereKeyNot($user->id)
+            ->whereHas('roles', function ($query): void {
+                $query->where('roles.name', 'super-admin')
+                    ->where('roles.active', true);
+            })
+            ->doesntExist();
     }
 }

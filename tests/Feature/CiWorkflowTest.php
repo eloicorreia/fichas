@@ -25,6 +25,8 @@ class CiWorkflowTest extends TestCase
         $workflow = file_get_contents(base_path('.github/workflows/ci.yml'));
 
         $this->assertIsString($workflow);
+        $this->assertStringContainsString('pull_request:', $workflow);
+        $this->assertStringContainsString('push:', $workflow);
         $this->assertStringContainsString('composer validate', $workflow);
         $this->assertStringContainsString('composer check-platform-reqs', $workflow);
         $this->assertStringContainsString('php artisan test', $workflow);
@@ -38,5 +40,17 @@ class CiWorkflowTest extends TestCase
         $this->assertStringContainsString('QUEUE_CONNECTION: sync', $workflow);
         $this->assertStringContainsString('MAIL_MAILER: array', $workflow);
         $this->assertStringContainsString('touch database/database.sqlite', $workflow);
+    }
+
+    public function test_workflow_opcional_de_coverage_esta_documentado(): void
+    {
+        $workflow = file_get_contents(base_path('.github/workflows/coverage.yml'));
+        $docs = file_get_contents(base_path('docs/testing.md'));
+
+        $this->assertIsString($workflow);
+        $this->assertIsString($docs);
+        $this->assertStringContainsString('workflow_dispatch:', $workflow);
+        $this->assertStringContainsString('php artisan test --coverage', $workflow);
+        $this->assertStringContainsString('php artisan test --coverage', $docs);
     }
 }

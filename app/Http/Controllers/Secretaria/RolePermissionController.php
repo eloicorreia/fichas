@@ -44,6 +44,12 @@ class RolePermissionController extends Controller
     {
         $permissionIds = $request->validated('permissions') ?? [];
 
+        if ($this->wouldRemoveRoleManageFromOnlyAdmin($role, $permissionIds)) {
+            return redirect()
+                ->route('secretaria.roles.index')
+                ->with('status', 'Não é possível remover role.manage do único papel administrador.');
+        }
+
         try {
             DB::transaction(function () use ($role, $permissionIds): void {
                 $role->permissions()->sync($permissionIds);
@@ -66,5 +72,33 @@ class RolePermissionController extends Controller
 
             throw $exception;
         }
+    }
+
+    /**
+     * @param  array<int, int|string>  $permissionIds
+     */
+    private function wouldRemoveRoleManageFromOnlyAdmin(Role $role, array $permissionIds): bool
+    {
+        if ($role->name !== 'super-admin') {
+            return false;
+        }
+
+        $roleManageId = Permission::query()
+            ->where('name', 'role.manage')
+            ->where('active', true)
+            ->value('id');
+
+        if ($roleManageId === null || in_array((int) $roleManageId, array_map('intval', $permissionIds), true)) {
+            return false;
+        }
+
+        return Role::query()
+            ->whereKeyNot($role->id)
+            ->where('active', true)
+            ->whereHas('permissions', function ($query): void {
+                $query->where('permissions.name', 'role.manage')
+                    ->where('permissions.active', true);
+            })
+            ->doesntExist();
     }
 }

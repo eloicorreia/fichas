@@ -9,6 +9,7 @@ use App\Mail\Fichas\CursilhoParticipanteMail;
 use App\Models\Evento;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use RuntimeException;
 use Tests\Feature\Concerns\CreatesSecretariaData;
 use Tests\TestCase;
 
@@ -168,6 +169,139 @@ class CursilhoPublicFlowTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_cursilho_casado_nao_aceita_data_casamento_menor_que_nascimento(): void
+    {
+        $evento = $this->createEventoCursilho(['numero' => 7108]);
+
+        $this->startCursilho($evento);
+        $this->postCursilhoStep(1, $evento, ['agree' => '1']);
+        $this->postCursilhoStep(2, $evento, [
+            'nome' => 'Candidato Casado',
+            'data_nascimento' => '01/01/1990',
+            'estado_civil' => 'CASADO',
+            'cpf' => '111.444.777-35',
+        ]);
+
+        $this->postCursilhoStep(3, $evento, [
+            'data_casamento' => '31/12/1989',
+            'cidade_casou' => 'Bauru',
+            'igreja_casou' => 'Sao Paulo Apostolo',
+        ])->assertSessionHasErrors('data_casamento');
+    }
+
+    public function test_cursilho_participa_igreja_nao_pula_passo_pastoral(): void
+    {
+        $evento = $this->createEventoCursilho(['numero' => 7109]);
+
+        $this->startCursilho($evento);
+        $this->postCursilhoStep(1, $evento, ['agree' => '1']);
+        $this->postCursilhoStep(2, $evento, [
+            'nome' => 'Participante Igreja',
+            'data_nascimento' => '01/01/1990',
+            'estado_civil' => 'SOLTEIRO',
+            'cpf' => '390.533.447-05',
+        ]);
+
+        $this->postCursilhoStep(4, $evento, $this->cursilhoStep4Payload([
+            'participa_igreja' => 'SIM',
+        ]))->assertRedirect('http://localhost/cursilho/homens/'.$evento->numero.'/passo/5');
+    }
+
+    public function test_cursilho_nao_participa_igreja_pula_passo_pastoral(): void
+    {
+        $evento = $this->createEventoCursilho(['numero' => 7110]);
+
+        $this->startCursilho($evento);
+        $this->postCursilhoStep(1, $evento, ['agree' => '1']);
+        $this->postCursilhoStep(2, $evento, [
+            'nome' => 'Participante Sem Pastoral',
+            'data_nascimento' => '01/01/1990',
+            'estado_civil' => 'SOLTEIRO',
+            'cpf' => '529.982.247-25',
+        ]);
+
+        $this->postCursilhoStep(4, $evento, $this->cursilhoStep4Payload([
+            'participa_igreja' => 'NAO',
+        ]))->assertRedirect('http://localhost/cursilho/homens/'.$evento->numero.'/passo/6');
+
+        $this->get(route('cursilho.passo.5', ['publicoEvento' => 'homens', 'numero' => $evento->numero]))
+            ->assertRedirect('http://localhost/cursilho/homens/'.$evento->numero.'/passo/6');
+    }
+
+    public function test_cursilho_sem_email_nao_envia_email_participante(): void
+    {
+        Mail::fake();
+
+        $evento = $this->createEventoCursilho(['numero' => 7111]);
+        $this->completeCursilhoFlow($evento, [
+            'cpf' => '111.444.777-35',
+            'email' => null,
+        ], ['email' => '']);
+
+        $this->post(route('cursilho.finalizar', ['publicoEvento' => 'homens', 'numero' => $evento->numero]))
+            ->assertOk();
+
+        Mail::assertNotSent(CursilhoParticipanteMail::class);
+        Mail::assertSent(CursilhoInscricaoInternaMail::class);
+    }
+
+    public function test_cursilho_falha_email_participante_nao_impede_finalizacao(): void
+    {
+        Mail::shouldReceive('to')->andReturnUsing(fn (string $to) => new class($to)
+        {
+            public function __construct(private string $to) {}
+
+            public function send(object $mailable): void
+            {
+                if ($this->to === 'falha@example.test') {
+                    throw new RuntimeException('SMTP indisponível');
+                }
+            }
+        });
+
+        $evento = $this->createEventoCursilho(['numero' => 7112]);
+        $this->completeCursilhoFlow($evento, [
+            'cpf' => '390.533.447-05',
+        ], ['email' => 'falha@example.test']);
+
+        $this->post(route('cursilho.finalizar', ['publicoEvento' => 'homens', 'numero' => $evento->numero]))
+            ->assertOk();
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'evento_id' => $evento->id,
+            'cpf_normalizado' => '39053344705',
+        ]);
+    }
+
+    public function test_cursilho_falha_email_interno_nao_impede_finalizacao(): void
+    {
+        Mail::shouldReceive('to')->andReturnUsing(fn (string $to) => new class($to)
+        {
+            public function __construct(private string $to) {}
+
+            public function send(object $mailable): void
+            {
+                if ($this->to === 'inscricoes@mccbauru.com.br') {
+                    throw new RuntimeException('SMTP indisponível');
+                }
+            }
+        });
+
+        $evento = $this->createEventoCursilho(['numero' => 7113]);
+        $this->completeCursilhoFlow($evento, [
+            'cpf' => '111.444.777-35',
+            'email' => 'interno-ok@example.test',
+        ], ['email' => 'interno-ok@example.test']);
+
+        $this->post(route('cursilho.finalizar', ['publicoEvento' => 'homens', 'numero' => $evento->numero]))
+            ->assertOk();
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'evento_id' => $evento->id,
+            'cpf_normalizado' => '11144477735',
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */
@@ -203,7 +337,7 @@ class CursilhoPublicFlowTest extends TestCase
     /**
      * @param  array<string, mixed>  $step2Overrides
      */
-    private function completeCursilhoFlow(Evento $evento, array $step2Overrides = []): void
+    private function completeCursilhoFlow(Evento $evento, array $step2Overrides = [], array $step4Overrides = []): void
     {
         $this->startCursilho($evento);
         $this->postCursilhoStep(1, $evento, ['agree' => '1']);
@@ -214,7 +348,7 @@ class CursilhoPublicFlowTest extends TestCase
             'cpf' => '529.982.247-25',
             'email' => 'participante@example.test',
         ], $step2Overrides));
-        $this->postCursilhoStep(4, $evento, $this->cursilhoStep4Payload());
+        $this->postCursilhoStep(4, $evento, $this->cursilhoStep4Payload($step4Overrides));
         $this->postCursilhoStep(6, $evento, $this->cursilhoStep6Payload());
     }
 
