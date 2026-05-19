@@ -245,6 +245,54 @@ class SecretariaInscricoesTest extends TestCase
             ->assertSee('data-testid="incluir-inscricao"', false);
     }
 
+    public function test_botao_alterar_nao_aparece_sem_inscricao_update_ou_review(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view']);
+        $evento = $this->createEvento();
+        $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertOk()
+            ->assertDontSee('data-testid="alterar-inscricao"', false);
+    }
+
+    public function test_botao_alterar_aparece_com_inscricao_update(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.update']);
+        $evento = $this->createEvento();
+        $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertOk()
+            ->assertSee('data-testid="alterar-inscricao"', false);
+    }
+
+    public function test_botao_excluir_nao_aparece_sem_inscricao_delete(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view']);
+        $evento = $this->createEvento();
+        $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertOk()
+            ->assertDontSee('data-testid="excluir-inscricao"', false);
+    }
+
+    public function test_botao_excluir_aparece_com_inscricao_delete(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.delete']);
+        $evento = $this->createEvento();
+        $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertOk()
+            ->assertSee('data-testid="excluir-inscricao"', false);
+    }
+
     public function test_exportacao_protege_campos_contra_csv_injection(): void
     {
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.export']);

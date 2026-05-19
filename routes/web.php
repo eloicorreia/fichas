@@ -269,7 +269,7 @@ Route::prefix('secretaria')->group(function () {
                 ->name('destroy');
         });
 
-    Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:inscricao.restore'])
+    Route::middleware(['auth', 'role:secretaria,super-admin', 'permission:inscricao.view', 'permission:inscricao.restore'])
         ->prefix('eventos/{evento}/inscricoes')
         ->name('secretaria.eventos.inscricoes.')
         ->group(function () {

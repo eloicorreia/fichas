@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\InscricaoCursilho;
+use App\Models\Role;
+use App\Models\User;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -107,7 +110,7 @@ class InscricaoSoftDeleteTest extends TestCase
 
     public function test_usuario_com_inscricao_restore_restaura_inscricao_excluida(): void
     {
-        $user = $this->userWithPermissions(['inscricao.restore']);
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.restore']);
         $evento = $this->createEvento();
         $inscricao = $this->createInscricao($evento);
         $inscricao->delete();
@@ -123,6 +126,20 @@ class InscricaoSoftDeleteTest extends TestCase
         ]);
     }
 
+    public function test_usuario_com_restore_sem_view_nao_restaura(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.restore']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento);
+        $inscricao->delete();
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.restore', [$evento, $inscricao]))
+            ->assertForbidden();
+
+        $this->assertSoftDeleted('inscricoes_cursilho', ['id' => $inscricao->id]);
+    }
+
     public function test_usuario_sem_inscricao_restore_nao_restaura(): void
     {
         $user = $this->userWithPermissions(['inscricao.view']);
@@ -135,6 +152,90 @@ class InscricaoSoftDeleteTest extends TestCase
             ->assertForbidden();
 
         $this->assertSoftDeleted('inscricoes_cursilho', ['id' => $inscricao->id]);
+    }
+
+    public function test_nao_restaura_se_houver_inscricao_ativa_com_mesmo_cpf_no_evento(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.restore']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['cpf' => '529.982.247-25']);
+        $inscricao->delete();
+        $this->createInscricao($evento, ['cpf' => '52998224725']);
+
+        $this->actingAs($user)
+            ->from(route('secretaria.eventos.inscricoes.index', [
+                'evento' => $evento,
+                'situacao' => 'excluidas',
+            ]))
+            ->put(route('secretaria.eventos.inscricoes.restore', [$evento, $inscricao]))
+            ->assertRedirect(route('secretaria.eventos.inscricoes.index', [
+                'evento' => $evento,
+                'situacao' => 'excluidas',
+            ]))
+            ->assertSessionHasErrors([
+                'inscricao' => 'Não é possível restaurar esta inscrição porque já existe uma inscrição ativa com o mesmo CPF neste evento.',
+            ]);
+
+        $this->assertSoftDeleted('inscricoes_cursilho', ['id' => $inscricao->id]);
+    }
+
+    public function test_restaura_normalmente_se_nao_houver_conflito(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.restore']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['cpf' => '529.982.247-25']);
+        $inscricao->delete();
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.restore', [$evento, $inscricao]))
+            ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'id' => $inscricao->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_super_admin_recebe_restore_pelo_seeder_e_restaura(): void
+    {
+        $role = Role::query()->create(['name' => 'super-admin', 'label' => 'Super Admin', 'active' => true]);
+        $this->seed(PermissionSeeder::class);
+
+        $user = User::factory()->create();
+        $user->roles()->sync([$role->id]);
+
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento);
+        $inscricao->delete();
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.restore', [$evento, $inscricao]))
+            ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'id' => $inscricao->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_listagem_com_situacao_todas_mostra_badge_de_excluida(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.restore']);
+        $evento = $this->createEvento();
+        $this->createInscricao($evento, ['nome' => 'Inscricao Ativa Em Todas']);
+        $excluida = $this->createInscricao($evento, ['nome' => 'Inscricao Excluida Em Todas']);
+        $excluida->delete();
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', [
+                'evento' => $evento,
+                'situacao' => 'todas',
+            ]))
+            ->assertOk()
+            ->assertSee('Inscricao Ativa Em Todas')
+            ->assertSee('Inscricao Excluida Em Todas')
+            ->assertSee('data-testid="badge-inscricao-excluida"', false)
+            ->assertSee('Excluída');
     }
 
     public function test_restore_nao_funciona_para_inscricao_de_outro_evento(): void

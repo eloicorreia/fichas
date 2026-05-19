@@ -64,6 +64,15 @@ class PermissionSeederTest extends TestCase
         $this->assertTrue(Role::query()->where('name', 'secretaria')->first()->permissions()->where('permissions.name', 'inscricao.restore')->exists());
     }
 
+    public function test_permission_seeder_vincula_inscricao_restore_ao_super_admin(): void
+    {
+        $role = Role::query()->create(['name' => 'super-admin', 'label' => 'Super Admin', 'active' => true]);
+
+        $this->seed(PermissionSeeder::class);
+
+        $this->assertTrue($role->fresh()->permissions()->where('permissions.name', 'inscricao.restore')->exists());
+    }
+
     public function test_permission_seeder_mantem_super_admin_com_todas(): void
     {
         $role = Role::query()->create(['name' => 'super-admin', 'label' => 'Super Admin', 'active' => true]);

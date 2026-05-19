@@ -22,6 +22,8 @@
     $eventoContexto = $evento ?? $eventoSelecionado;
     $usuario = auth()->user();
     $podeIncluir = $usuario?->hasPermission('inscricao.create') || $usuario?->hasPermission('inscricao.review');
+    $podeAlterar = $usuario?->hasPermission('inscricao.update') || $usuario?->hasPermission('inscricao.review');
+    $podeExcluir = $usuario?->hasPermission('inscricao.delete');
     $podeRestaurar = $usuario?->hasPermission('inscricao.restore') || $usuario?->hasRole('super-admin');
 
     $baseRoute = $evento
@@ -238,6 +240,14 @@
                     <tr>
                         <td class="px-3 py-2.5 font-semibold text-slate-900">
                             {{ $inscricao->nome }}
+                            @if ($inscricao->trashed())
+                                <span
+                                    data-testid="badge-inscricao-excluida"
+                                    class="ml-2 inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-100"
+                                >
+                                    Excluída
+                                </span>
+                            @endif
                         </td>
 
                         <td class="px-3 py-2.5 text-sm text-slate-700">
@@ -292,47 +302,59 @@
                                         </span>
                                     @endif
                                 @elseif ($evento)
-                                    <a
-                                        href="{{ route('secretaria.eventos.inscricoes.edit', [$evento, $inscricao]) }}"
-                                        class="inline-flex rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50"
-                                    >
-                                        Alterar
-                                    </a>
-
-                                    <form method="POST"
-                                          action="{{ route('secretaria.eventos.inscricoes.destroy', [$evento, $inscricao]) }}"
-                                          onsubmit="return confirm('Deseja realmente excluir esta inscrição?');">
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button
-                                            type="submit"
-                                            class="inline-flex rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
+                                    @if ($podeAlterar)
+                                        <a
+                                            href="{{ route('secretaria.eventos.inscricoes.edit', [$evento, $inscricao]) }}"
+                                            data-testid="alterar-inscricao"
+                                            class="inline-flex rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50"
                                         >
-                                            Excluir
-                                        </button>
-                                    </form>
+                                            Alterar
+                                        </a>
+                                    @endif
+
+                                    @if ($podeExcluir)
+                                        <form method="POST"
+                                              action="{{ route('secretaria.eventos.inscricoes.destroy', [$evento, $inscricao]) }}"
+                                              onsubmit="return confirm('Deseja realmente excluir esta inscrição?');">
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button
+                                                type="submit"
+                                                data-testid="excluir-inscricao"
+                                                class="inline-flex rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
+                                            >
+                                                Excluir
+                                            </button>
+                                        </form>
+                                    @endif
                                 @elseif ($inscricao->evento)
-                                    <a
-                                        href="{{ route('secretaria.eventos.inscricoes.edit', [$inscricao->evento, $inscricao]) }}"
-                                        class="inline-flex rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50"
-                                    >
-                                        Alterar
-                                    </a>
-
-                                    <form method="POST"
-                                          action="{{ route('secretaria.eventos.inscricoes.destroy', [$inscricao->evento, $inscricao]) }}"
-                                          onsubmit="return confirm('Deseja realmente excluir esta inscrição?');">
-                                        @csrf
-                                        @method('DELETE')
-
-                                        <button
-                                            type="submit"
-                                            class="inline-flex rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
+                                    @if ($podeAlterar)
+                                        <a
+                                            href="{{ route('secretaria.eventos.inscricoes.edit', [$inscricao->evento, $inscricao]) }}"
+                                            data-testid="alterar-inscricao"
+                                            class="inline-flex rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:border-sky-300 hover:bg-sky-50"
                                         >
-                                            Excluir
-                                        </button>
-                                    </form>
+                                            Alterar
+                                        </a>
+                                    @endif
+
+                                    @if ($podeExcluir)
+                                        <form method="POST"
+                                              action="{{ route('secretaria.eventos.inscricoes.destroy', [$inscricao->evento, $inscricao]) }}"
+                                              onsubmit="return confirm('Deseja realmente excluir esta inscrição?');">
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button
+                                                type="submit"
+                                                data-testid="excluir-inscricao"
+                                                class="inline-flex rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-50"
+                                            >
+                                                Excluir
+                                            </button>
+                                        </form>
+                                    @endif
                                 @else
                                     <span class="inline-flex rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-400">
                                         Sem evento

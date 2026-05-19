@@ -104,6 +104,20 @@ class EventoInscricaoService
             ]);
         }
 
+        if ($inscricao->cpf_normalizado) {
+            $hasActiveCpfConflict = InscricaoCursilho::query()
+                ->where('evento_id', $evento->id)
+                ->where('cpf_normalizado', $inscricao->cpf_normalizado)
+                ->whereKeyNot($inscricao->id)
+                ->exists();
+
+            if ($hasActiveCpfConflict) {
+                throw ValidationException::withMessages([
+                    'inscricao' => 'Não é possível restaurar esta inscrição porque já existe uma inscrição ativa com o mesmo CPF neste evento.',
+                ]);
+            }
+        }
+
         $inscricao->restore();
     }
 
