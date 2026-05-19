@@ -11,9 +11,47 @@ use Illuminate\Validation\Rule;
 
 class StoreEventoInscricaoRequest extends FormRequest
 {
+    private const UFS_BRASILEIRAS = [
+        'AC',
+        'AL',
+        'AP',
+        'AM',
+        'BA',
+        'CE',
+        'DF',
+        'ES',
+        'GO',
+        'MA',
+        'MT',
+        'MS',
+        'MG',
+        'PA',
+        'PB',
+        'PR',
+        'PE',
+        'PI',
+        'RJ',
+        'RN',
+        'RS',
+        'RO',
+        'RR',
+        'SC',
+        'SP',
+        'SE',
+        'TO',
+    ];
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'cep' => preg_replace('/\D+/', '', (string) $this->input('cep')),
+            'estado' => mb_strtoupper(trim((string) $this->input('estado')), 'UTF-8'),
+        ]);
     }
 
     /**
@@ -74,11 +112,11 @@ class StoreEventoInscricaoRequest extends FormRequest
             'telefone' => ['required', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:150'],
             'grau_instrucao' => ['nullable', 'string', 'max:40'],
-            'cep' => ['required', 'string', 'max:9'],
+            'cep' => ['required', 'string', 'digits:8'],
             'endereco' => ['required', 'string', 'max:180'],
             'bairro' => ['required', 'string', 'max:120'],
             'cidade' => ['required', 'string', 'max:120'],
-            'estado' => ['required', 'string', 'size:2'],
+            'estado' => ['required', 'string', 'size:2', Rule::in(self::UFS_BRASILEIRAS)],
             'participa_igreja' => ['required', 'string', 'max:3'],
             'sacramento_batizado' => ['nullable', 'boolean'],
             'sacramento_eucaristia' => ['nullable', 'boolean'],
@@ -89,6 +127,17 @@ class StoreEventoInscricaoRequest extends FormRequest
             'contato_familia_missa' => ['required', 'string'],
             'alimentacao_especial' => ['required', 'string'],
             'padrinho_madrinha_contato' => ['required', 'string'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'cep.digits' => 'Informe um CEP válido com 8 dígitos.',
+            'estado.in' => 'Informe uma UF brasileira válida.',
         ];
     }
 }

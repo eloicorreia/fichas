@@ -13,9 +13,14 @@ class DatabaseConstraintDetector
         $sqlState = (string) ($exception->errorInfo[0] ?? $exception->getCode());
         $driverCode = (int) ($exception->errorInfo[1] ?? 0);
         $message = $exception->getMessage();
+        $hasCpfConstraintContext = str_contains($message, 'uk_inscricoes_evento_cpf_normalizado')
+            || str_contains($message, 'inscricoes_cursilho.evento_id, inscricoes_cursilho.cpf_normalizado');
 
-        return str_contains($message, 'uk_inscricoes_evento_cpf_normalizado')
-            || str_contains($message, 'inscricoes_cursilho.evento_id, inscricoes_cursilho.cpf_normalizado')
-            || ($sqlState === '23000' && in_array($driverCode, [0, 19, 1062], true));
+        return $hasCpfConstraintContext
+            || (
+                $sqlState === '23000'
+                && in_array($driverCode, [0, 19, 1062], true)
+                && $hasCpfConstraintContext
+            );
     }
 }

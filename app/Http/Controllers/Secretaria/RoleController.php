@@ -19,7 +19,7 @@ class RoleController extends Controller
     public function index(): View
     {
         $q = trim((string) request('q', ''));
-        $status = (string) request('status', '');
+        $status = $this->normalizeStatusFilter((string) request('status', ''));
         $sort = (string) request('sort', 'name');
         $dir = strtolower((string) request('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
 
@@ -194,5 +194,14 @@ class RoleController extends Controller
                 ->where('active', true)
                 ->whereKeyNot($role->id)
                 ->doesntExist();
+    }
+
+    private function normalizeStatusFilter(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            '0', 'false' => '0',
+            '1', 'true' => '1',
+            default => '',
+        };
     }
 }

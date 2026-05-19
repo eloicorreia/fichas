@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Feature\Concerns\CreatesSecretariaData;
 use Tests\TestCase;
@@ -35,18 +36,36 @@ class InscricaoCpfValidationTest extends TestCase
 
     public function test_banco_bloqueia_cpf_normalizado_duplicado_no_mesmo_evento(): void
     {
-        $evento = $this->createEvento();
+        $evento = $this->createEvento(['numero' => 510]);
+        $outroEvento = $this->createEvento(['numero' => 511]);
         $this->createInscricao($evento, ['cpf' => '529.982.247-25']);
 
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        try {
+            \App\Models\InscricaoCursilho::query()->create($this->rawInscricaoPayload([
+                'evento_id' => $evento->id,
+                'tipo_evento' => $evento->tipo_evento,
+                'publico_evento' => $evento->publico_evento,
+                'numero_evento' => $evento->numero,
+                'cpf' => '52998224725',
+            ]));
+
+            $this->fail('O banco deveria bloquear CPF duplicado no mesmo evento.');
+        } catch (QueryException $exception) {
+            $this->assertNotEmpty($exception->getMessage());
+        }
 
         \App\Models\InscricaoCursilho::query()->create($this->rawInscricaoPayload([
-            'evento_id' => $evento->id,
-            'tipo_evento' => $evento->tipo_evento,
-            'publico_evento' => $evento->publico_evento,
-            'numero_evento' => $evento->numero,
+            'evento_id' => $outroEvento->id,
+            'tipo_evento' => $outroEvento->tipo_evento,
+            'publico_evento' => $outroEvento->publico_evento,
+            'numero_evento' => $outroEvento->numero,
             'cpf' => '52998224725',
         ]));
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'evento_id' => $outroEvento->id,
+            'cpf_normalizado' => '52998224725',
+        ]);
     }
 
     public function test_admin_cria_mesmo_cpf_em_evento_diferente(): void
@@ -150,6 +169,107 @@ class InscricaoCpfValidationTest extends TestCase
             'estado_civil' => 'SOLTEIRO',
             'cpf' => '111.111.111-11',
         ])->assertSessionHasErrors('cpf');
+    }
+
+    public function test_admin_rejeita_cep_invalido(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.create']);
+        $evento = $this->createEvento();
+
+        $this->actingAs($user)
+            ->post(route('secretaria.eventos.inscricoes.store', $evento), $this->inscricaoPayload([
+                'cep' => '1700-000',
+            ]))
+            ->assertSessionHasErrors([
+                'cep' => 'Informe um CEP válido com 8 dígitos.',
+            ]);
+    }
+
+    public function test_admin_aceita_cep_com_mascara(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.create']);
+        $evento = $this->createEvento();
+
+        $this->actingAs($user)
+            ->post(route('secretaria.eventos.inscricoes.store', $evento), $this->inscricaoPayload([
+                'cep' => '01000-000',
+            ]))
+            ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'evento_id' => $evento->id,
+            'cep' => '01000000',
+        ]);
+    }
+
+    public function test_admin_aceita_cep_sem_mascara(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.create']);
+        $evento = $this->createEvento();
+
+        $this->actingAs($user)
+            ->post(route('secretaria.eventos.inscricoes.store', $evento), $this->inscricaoPayload([
+                'cep' => '01000000',
+            ]))
+            ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
+    }
+
+    public function test_admin_rejeita_uf_invalida(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.create']);
+        $evento = $this->createEvento();
+
+        $this->actingAs($user)
+            ->post(route('secretaria.eventos.inscricoes.store', $evento), $this->inscricaoPayload([
+                'estado' => 'XX',
+            ]))
+            ->assertSessionHasErrors([
+                'estado' => 'Informe uma UF brasileira válida.',
+            ]);
+    }
+
+    public function test_admin_aceita_uf_minuscula_e_salva_maiuscula(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.create']);
+        $evento = $this->createEvento();
+
+        $this->actingAs($user)
+            ->post(route('secretaria.eventos.inscricoes.store', $evento), $this->inscricaoPayload([
+                'estado' => 'sp',
+            ]))
+            ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'evento_id' => $evento->id,
+            'estado' => 'SP',
+        ]);
+    }
+
+    public function test_admin_update_mantem_regra_de_cep_e_uf(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.update']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.update', [$evento, $inscricao]), $this->inscricaoPayload([
+                'cep' => '1700-000',
+                'estado' => 'SP',
+            ]))
+            ->assertSessionHasErrors('cep');
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.update', [$evento, $inscricao]), $this->inscricaoPayload([
+                'cep' => '01000-000',
+                'estado' => 'rj',
+            ]))
+            ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'id' => $inscricao->id,
+            'cep' => '01000000',
+            'estado' => 'RJ',
+        ]);
     }
 
     public function test_admin_nao_altera_pagamento_comprovante_base64(): void

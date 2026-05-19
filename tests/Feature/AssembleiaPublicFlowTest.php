@@ -155,6 +155,23 @@ class AssembleiaPublicFlowTest extends TestCase
             ->assertRedirect('/fichas/naodisponivel');
     }
 
+    public function test_tela_finalizada_da_assembleia_permite_acesso_direto_sem_dados_pessoais(): void
+    {
+        $evento = $this->createEventoAssembleia(['numero' => 8220]);
+
+        $this->get(route('assembleia.finalizado', $evento->numero))
+            ->assertOk()
+            ->assertSee('Inscrição concluída')
+            ->assertDontSee('529.982.247-25')
+            ->assertDontSee('assembleia@example.test');
+    }
+
+    public function test_tela_finalizada_da_assembleia_inexistente_redireciona_para_nao_disponivel(): void
+    {
+        $this->get(route('assembleia.finalizado', 999999))
+            ->assertRedirect('/fichas/naodisponivel');
+    }
+
     public function test_assembleia_start_com_following_redirects_renderiza_passo_1(): void
     {
         $evento = $this->createEventoAssembleia(['numero' => 8218]);
@@ -358,7 +375,11 @@ class AssembleiaPublicFlowTest extends TestCase
             ->followingRedirects()
             ->post(route('assembleia.finalizar', $evento->numero))
             ->assertOk()
-            ->assertSee('Já existe uma inscrição para este CPF neste evento.');
+            ->assertSee('Já existe uma inscrição para este CPF neste evento.')
+            ->assertSee(route('assembleia.finalizar', $evento->numero), false)
+            ->assertSee('Confirmo que está tudo correto')
+            ->assertSee(route('assembleia.passo.2', $evento->numero), false)
+            ->assertSee('Voltar');
     }
 
     /**

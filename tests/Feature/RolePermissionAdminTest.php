@@ -182,7 +182,7 @@ class RolePermissionAdminTest extends TestCase
             ->assertDontSee('Filtro Role Inativo');
     }
 
-    public function test_roles_index_status_invalido_ignora_filtro(): void
+    public function test_roles_index_status_false_lista_inativos(): void
     {
         $user = $this->superAdminWithPermissions(['role.view']);
         Role::query()->create(['name' => 'filtro-role-ativo', 'label' => 'Filtro Role Ativo', 'active' => true]);
@@ -191,8 +191,8 @@ class RolePermissionAdminTest extends TestCase
         $this->actingAs($user)
             ->get(route('secretaria.roles.index', ['status' => 'false']))
             ->assertOk()
-            ->assertSee('Filtro Role Ativo')
-            ->assertSee('Filtro Role Inativo');
+            ->assertSee('Filtro Role Inativo')
+            ->assertDontSee('Filtro Role Ativo');
     }
 
     public function test_permissions_index_status_zero_lista_inativas(): void
@@ -221,7 +221,7 @@ class RolePermissionAdminTest extends TestCase
             ->assertDontSee('Filtro Permission Inativa');
     }
 
-    public function test_permissions_index_status_invalido_ignora_filtro(): void
+    public function test_permissions_index_status_false_lista_inativas(): void
     {
         $user = $this->superAdminWithPermissions(['permission.view']);
         Permission::query()->create(['name' => 'filtro.permission.ativa', 'label' => 'Filtro Permission Ativa', 'module' => 'filtro', 'active' => true]);
@@ -230,8 +230,8 @@ class RolePermissionAdminTest extends TestCase
         $this->actingAs($user)
             ->get(route('secretaria.permissions.index', ['status' => 'false']))
             ->assertOk()
-            ->assertSee('Filtro Permission Ativa')
-            ->assertSee('Filtro Permission Inativa');
+            ->assertSee('Filtro Permission Inativa')
+            ->assertDontSee('Filtro Permission Ativa');
     }
 
     public function test_permissoes_customizadas_nao_sao_removidas_pelo_seeder(): void

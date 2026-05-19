@@ -98,4 +98,4 @@ jobs:
           php artisan migrate:fresh --force
 
       - name: Run Critical MySQL Tests
-        run: php artisan test tests/Feature/CursilhoPublicFlowTest.php tests/Feature/AssembleiaPublicFlowTest.php tests/Feature/InscricaoCpfValidationTest.php tests/Feature/RolePermissionAdminTest.php tests/Feature/UsuarioAdminTest.php
+        run: php artisan test tests/Feature/CursilhoPublicFlowTest.php tests/Feature/AssembleiaPublicFlowTest.php tests/Feature/InscricaoCpfValidationTest.php tests/Feature/RolePermissionAdminTest.php tests/Feature/UsuarioAdminTest.php tests/Unit/DatabaseConstraintDetectorTest.php
