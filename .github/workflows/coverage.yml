@@ -47,3 +47,55 @@ jobs:
 
       - name: Run Coverage
         run: php artisan test --coverage
+
+  mysql-critical:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: fichas_test
+      DB_USERNAME: root
+      DB_PASSWORD: password
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_DATABASE: fichas_test
+          MYSQL_ROOT_PASSWORD: password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: bcmath, dom, fileinfo, mbstring, pdo_mysql, xml, xmlwriter
+          coverage: none
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare Laravel
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+          php artisan migrate:fresh --force
+
+      - name: Run Critical MySQL Tests
+        run: php artisan test tests/Feature/CursilhoPublicFlowTest.php tests/Feature/AssembleiaPublicFlowTest.php tests/Feature/InscricaoCpfValidationTest.php tests/Feature/RolePermissionAdminTest.php tests/Feature/UsuarioAdminTest.php

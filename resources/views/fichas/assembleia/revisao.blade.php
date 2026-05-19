@@ -96,6 +96,22 @@
       font-weight:700;
     }
 
+    .error-box{
+      margin:0 0 14px;
+      padding:12px 14px;
+      border:1px solid #fecaca;
+      border-radius:10px;
+      background:#fef2f2;
+      color:#991b1b;
+      font-size:14px;
+      font-weight:700;
+    }
+
+    .error-box ul{
+      margin:0;
+      padding-left:18px;
+    }
+
     .section{
       margin-top:14px;
       border:1px solid var(--border);
@@ -299,6 +315,16 @@
       <section class="content">
         <h2 class="title">Revisão da Inscrição para a Assembleia Diocesana {{ $numero }}</h2>
         <p class="subtitle">Confira todos os dados antes de enviar</p>
+
+        @if ($errors->any())
+          <div class="error-box" role="alert">
+            <ul>
+              @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+              @endforeach
+            </ul>
+          </div>
+        @endif
 
         <div class="section">
           <div class="section-head">Dados pessoais</div>

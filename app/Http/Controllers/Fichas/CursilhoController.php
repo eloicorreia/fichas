@@ -8,6 +8,7 @@ use App\Mail\Fichas\CursilhoParticipanteMail;
 use App\Models\Evento;
 use App\Models\InscricaoCursilho;
 use App\Rules\CpfValido;
+use App\Support\DatabaseConstraintDetector;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
@@ -613,7 +614,7 @@ class CursilhoController extends Controller
                 return InscricaoCursilho::query()->create($payload);
             });
         } catch (QueryException $exception) {
-            if (! $this->isUniqueCpfConstraintViolation($exception)) {
+            if (! DatabaseConstraintDetector::isUniqueCpfInscricaoViolation($exception)) {
                 throw $exception;
             }
 
@@ -982,17 +983,6 @@ class CursilhoController extends Controller
         }
 
         return $phone;
-    }
-
-    private function isUniqueCpfConstraintViolation(QueryException $exception): bool
-    {
-        $sqlState = (string) ($exception->errorInfo[0] ?? $exception->getCode());
-        $driverCode = (int) ($exception->errorInfo[1] ?? 0);
-        $message = $exception->getMessage();
-
-        return str_contains($message, 'uk_inscricoes_evento_cpf_normalizado')
-            || str_contains($message, 'inscricoes_cursilho.evento_id, inscricoes_cursilho.cpf_normalizado')
-            || ($sqlState === '23000' && in_array($driverCode, [0, 19, 1062], true));
     }
 
     private function forgetAllCursilhoWizards(Request $request): void

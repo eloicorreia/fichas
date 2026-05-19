@@ -7,6 +7,7 @@ use App\Mail\Fichas\AssembleiaInscricaoInterna;
 use App\Mail\Fichas\AssembleiaParticipanteMail;
 use App\Models\InscricaoCursilho;
 use App\Rules\CpfValido;
+use App\Support\DatabaseConstraintDetector;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
@@ -215,7 +216,7 @@ class AssembleiaController extends Controller
                 return InscricaoCursilho::query()->create($payload);
             });
         } catch (QueryException $exception) {
-            if (! $this->isUniqueCpfConstraintViolation($exception)) {
+            if (! DatabaseConstraintDetector::isUniqueCpfInscricaoViolation($exception)) {
                 throw $exception;
             }
 
@@ -325,10 +326,23 @@ class AssembleiaController extends Controller
         $dados['estado'] = mb_strtoupper(trim((string) $dados['estado']), 'UTF-8');
         $dados['paroquia'] = mb_strtoupper(trim((string) $dados['paroquia']), 'UTF-8');
         $dados['cpf'] = $this->formatCpf($this->onlyDigits($dados['cpf']));
-        $dados['cep'] = $this->formatCep($dados['cep']);
+        $cepDigits = $this->onlyDigits($dados['cep']);
+        $dados['cep'] = $this->formatCep($cepDigits);
         $dados['email'] = isset($dados['email']) && trim((string) $dados['email']) !== ''
             ? mb_strtolower(trim((string) $dados['email']), 'UTF-8')
             : null;
+
+        if (strlen($cepDigits) !== 8) {
+            throw ValidationException::withMessages([
+                'cep' => 'Informe um CEP válido com 8 dígitos.',
+            ]);
+        }
+
+        if (! in_array($dados['estado'], $this->ufsBrasileiras(), true)) {
+            throw ValidationException::withMessages([
+                'estado' => 'Informe uma UF brasileira válida.',
+            ]);
+        }
 
         if (! $this->isValidDataNascimento($dados['data_nascimento'])) {
             throw ValidationException::withMessages([
@@ -613,15 +627,16 @@ class AssembleiaController extends Controller
         return $phone;
     }
 
-    private function isUniqueCpfConstraintViolation(QueryException $exception): bool
+    /**
+     * @return list<string>
+     */
+    private function ufsBrasileiras(): array
     {
-        $sqlState = (string) ($exception->errorInfo[0] ?? $exception->getCode());
-        $driverCode = (int) ($exception->errorInfo[1] ?? 0);
-        $message = $exception->getMessage();
-
-        return str_contains($message, 'uk_inscricoes_evento_cpf_normalizado')
-            || str_contains($message, 'inscricoes_cursilho.evento_id, inscricoes_cursilho.cpf_normalizado')
-            || ($sqlState === '23000' && in_array($driverCode, [0, 19, 1062], true));
+        return [
+            'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
+            'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
+            'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+        ];
     }
 
     private function noCacheView(string $view, array $data): Response

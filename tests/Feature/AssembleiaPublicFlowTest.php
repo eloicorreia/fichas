@@ -71,6 +71,65 @@ class AssembleiaPublicFlowTest extends TestCase
         ]))->assertSessionHasErrors('data_nascimento');
     }
 
+    public function test_assembleia_cep_invalido_falha(): void
+    {
+        $evento = $this->createEventoAssembleia(['numero' => 8214]);
+
+        $this->startAssembleia($evento);
+        $this->post(route('assembleia.passo.1.store', $evento->numero), ['agree' => '1']);
+
+        $this->post(route('assembleia.passo.2.store', $evento->numero), $this->assembleiaStep2Payload([
+            'cep' => '1700-000',
+        ]))->assertSessionHasErrors([
+            'cep' => 'Informe um CEP válido com 8 dígitos.',
+        ]);
+    }
+
+    public function test_assembleia_uf_invalida_falha(): void
+    {
+        $evento = $this->createEventoAssembleia(['numero' => 8215]);
+
+        $this->startAssembleia($evento);
+        $this->post(route('assembleia.passo.1.store', $evento->numero), ['agree' => '1']);
+
+        $this->post(route('assembleia.passo.2.store', $evento->numero), $this->assembleiaStep2Payload([
+            'estado' => 'XX',
+        ]))->assertSessionHasErrors([
+            'estado' => 'Informe uma UF brasileira válida.',
+        ]);
+    }
+
+    public function test_assembleia_cep_com_mascara_valido_passa(): void
+    {
+        $evento = $this->createEventoAssembleia(['numero' => 8216]);
+
+        $this->startAssembleia($evento);
+        $this->post(route('assembleia.passo.1.store', $evento->numero), ['agree' => '1']);
+
+        $this->post(route('assembleia.passo.2.store', $evento->numero), $this->assembleiaStep2Payload([
+            'cep' => '17000-000',
+        ]))->assertRedirect(route('assembleia.revisao', $evento->numero));
+    }
+
+    public function test_assembleia_uf_minuscula_normaliza_para_maiuscula(): void
+    {
+        Mail::fake();
+
+        $evento = $this->createEventoAssembleia(['numero' => 8217]);
+        $this->completeAssembleiaFlow($evento, [
+            'estado' => 'sp',
+        ]);
+
+        $this->post(route('assembleia.finalizar', $evento->numero))
+            ->assertRedirect(route('assembleia.finalizado', $evento->numero));
+
+        $this->assertDatabaseHas('inscricoes_cursilho', [
+            'evento_id' => $evento->id,
+            'cpf_normalizado' => '52998224725',
+            'estado' => 'SP',
+        ]);
+    }
+
     public function test_evento_fechado_ou_inativo_nao_permite_inscricao(): void
     {
         $fechado = $this->createEventoAssembleia([
@@ -94,6 +153,17 @@ class AssembleiaPublicFlowTest extends TestCase
     {
         $this->get(route('assembleia.show', 999999))
             ->assertRedirect('/fichas/naodisponivel');
+    }
+
+    public function test_assembleia_start_com_following_redirects_renderiza_passo_1(): void
+    {
+        $evento = $this->createEventoAssembleia(['numero' => 8218]);
+
+        $this->followingRedirects()
+            ->get(route('assembleia.start'))
+            ->assertOk()
+            ->assertSee('Passo 1 de 2')
+            ->assertSee('/fichas/assembleia/'.$evento->numero.'/passo/1', false);
     }
 
     public function test_assembleia_nao_finaliza_sem_passos_obrigatorios(): void
@@ -268,6 +338,27 @@ class AssembleiaPublicFlowTest extends TestCase
             'evento_id' => $evento->id,
             'cpf_normalizado' => '39053344705',
         ]);
+    }
+
+    public function test_assembleia_exibe_erro_de_cpf_duplicado_na_revisao(): void
+    {
+        Mail::fake();
+
+        $evento = $this->createEventoAssembleia(['numero' => 8219]);
+        $this->completeAssembleiaFlow($evento, [
+            'cpf' => '529.982.247-25',
+        ]);
+
+        $this->createInscricao($evento, [
+            'nome' => 'Inscricao Concorrente Assembleia',
+            'cpf' => '529.982.247-25',
+        ]);
+
+        $this->from(route('assembleia.revisao', $evento->numero))
+            ->followingRedirects()
+            ->post(route('assembleia.finalizar', $evento->numero))
+            ->assertOk()
+            ->assertSee('Já existe uma inscrição para este CPF neste evento.');
     }
 
     /**
