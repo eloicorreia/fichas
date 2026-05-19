@@ -24,6 +24,7 @@
     $podeIncluir = $usuario?->hasPermission('inscricao.create') || $usuario?->hasPermission('inscricao.review');
     $podeAlterar = $usuario?->hasPermission('inscricao.update') || $usuario?->hasPermission('inscricao.review');
     $podeExcluir = $usuario?->hasPermission('inscricao.delete');
+    $podeAlterarPagamento = $usuario?->hasPermission('inscricao.payment');
     $podeRestaurar = $usuario?->hasPermission('inscricao.restore');
 
     $baseRoute = $evento
@@ -304,6 +305,28 @@
                                         </span>
                                     @endif
                                 @elseif ($evento)
+                                    @if ($podeAlterarPagamento)
+                                        <form method="POST"
+                                              action="{{ route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]) }}">
+                                            @csrf
+                                            @method('PUT')
+
+                                            <input type="hidden" name="pagamento_confirmado" value="{{ $inscricao->pagamento_confirmado ? '0' : '1' }}">
+
+                                            @unless ($inscricao->pagamento_confirmado)
+                                                <input type="hidden" name="pagamento_data" value="{{ now()->toDateString() }}">
+                                            @endunless
+
+                                            <button
+                                                type="submit"
+                                                data-testid="alterar-pagamento-inscricao"
+                                                class="inline-flex rounded-lg border border-emerald-200 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50"
+                                            >
+                                                Pagamento
+                                            </button>
+                                        </form>
+                                    @endif
+
                                     @if ($podeAlterar)
                                         <a
                                             href="{{ route('secretaria.eventos.inscricoes.edit', [$evento, $inscricao]) }}"
@@ -331,6 +354,28 @@
                                         </form>
                                     @endif
                                 @elseif ($inscricao->evento)
+                                    @if ($podeAlterarPagamento)
+                                        <form method="POST"
+                                              action="{{ route('secretaria.eventos.inscricoes.pagamento.update', [$inscricao->evento, $inscricao]) }}">
+                                            @csrf
+                                            @method('PUT')
+
+                                            <input type="hidden" name="pagamento_confirmado" value="{{ $inscricao->pagamento_confirmado ? '0' : '1' }}">
+
+                                            @unless ($inscricao->pagamento_confirmado)
+                                                <input type="hidden" name="pagamento_data" value="{{ now()->toDateString() }}">
+                                            @endunless
+
+                                            <button
+                                                type="submit"
+                                                data-testid="alterar-pagamento-inscricao"
+                                                class="inline-flex rounded-lg border border-emerald-200 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50"
+                                            >
+                                                Pagamento
+                                            </button>
+                                        </form>
+                                    @endif
+
                                     @if ($podeAlterar)
                                         <a
                                             href="{{ route('secretaria.eventos.inscricoes.edit', [$inscricao->evento, $inscricao]) }}"

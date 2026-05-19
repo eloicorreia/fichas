@@ -214,6 +214,21 @@ class InscricaoCpfValidationTest extends TestCase
         $this->assertFalse($inscricao->fresh()->pagamento_confirmado);
     }
 
+    public function test_mensagem_pagamento_confirmado_exige_data_eh_amigavel(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['pagamento_confirmado' => false]);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]), [
+                'pagamento_confirmado' => true,
+            ])
+            ->assertSessionHasErrors([
+                'pagamento_data' => 'Informe a data do pagamento quando o pagamento estiver confirmado.',
+            ]);
+    }
+
     public function test_pagamento_pendente_limpa_data(): void
     {
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
@@ -248,6 +263,22 @@ class InscricaoCpfValidationTest extends TestCase
             ->assertSessionHasErrors('pagamento_data');
 
         $this->assertFalse($inscricao->fresh()->pagamento_confirmado);
+    }
+
+    public function test_mensagem_pagamento_data_futura_eh_amigavel(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, ['pagamento_confirmado' => false]);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]), [
+                'pagamento_confirmado' => true,
+                'pagamento_data' => now()->addDay()->toDateString(),
+            ])
+            ->assertSessionHasErrors([
+                'pagamento_data' => 'A data do pagamento não pode ser futura.',
+            ]);
     }
 
     public function test_usuario_sem_inscricao_payment_nao_altera_pagamento(): void

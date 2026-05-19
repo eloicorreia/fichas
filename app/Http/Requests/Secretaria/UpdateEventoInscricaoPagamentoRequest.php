@@ -29,4 +29,15 @@ class UpdateEventoInscricaoPagamentoRequest extends FormRequest
             ],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'pagamento_data.required' => 'Informe a data do pagamento quando o pagamento estiver confirmado.',
+            'pagamento_data.before_or_equal' => 'A data do pagamento não pode ser futura.',
+        ];
+    }
 }

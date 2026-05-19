@@ -322,6 +322,30 @@ class SecretariaInscricoesTest extends TestCase
             ->assertSee('data-testid="excluir-inscricao"', false);
     }
 
+    public function test_botao_alterar_pagamento_aparece_com_inscricao_payment(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
+        $evento = $this->createEvento();
+        $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertOk()
+            ->assertSee('data-testid="alterar-pagamento-inscricao"', false);
+    }
+
+    public function test_botao_alterar_pagamento_nao_aparece_sem_inscricao_payment(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view']);
+        $evento = $this->createEvento();
+        $this->createInscricao($evento);
+
+        $this->actingAs($user)
+            ->get(route('secretaria.eventos.inscricoes.index', $evento))
+            ->assertOk()
+            ->assertDontSee('data-testid="alterar-pagamento-inscricao"', false);
+    }
+
     public function test_exportacao_protege_campos_contra_csv_injection(): void
     {
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.export']);
