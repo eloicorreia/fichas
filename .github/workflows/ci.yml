@@ -9,6 +9,14 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: sqlite
+      DB_DATABASE: database/database.sqlite
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
 
     steps:
       - name: Checkout
@@ -33,6 +41,7 @@ jobs:
       - name: Prepare Laravel
         run: |
           cp .env.example .env
+          touch database/database.sqlite
           php artisan key:generate --ansi
 
       - name: Validate Composer

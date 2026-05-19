@@ -174,6 +174,44 @@ class EventoInscricaoController extends Controller
         }
     }
 
+    public function updatePagamento(
+        Evento $evento,
+        InscricaoCursilho $inscricao,
+        Request $request,
+        EventoInscricaoService $service
+    ): RedirectResponse {
+        abort_if((int) $inscricao->evento_id !== (int) $evento->id, 404);
+
+        $validated = $request->validate([
+            'pagamento_confirmado' => ['required', 'boolean'],
+            'pagamento_data' => ['nullable', 'date'],
+        ]);
+
+        try {
+            DB::transaction(function () use ($evento, $inscricao, $validated, $service): void {
+                $service->updatePagamentoForEvento($evento, $inscricao, $validated);
+            });
+
+            Log::info('Pagamento da inscrição atualizado com sucesso.', [
+                'evento_id' => $evento->id,
+                'inscricao_id' => $inscricao->id,
+            ]);
+
+            return redirect()
+                ->route('secretaria.eventos.inscricoes.index', $evento)
+                ->with('status', 'Pagamento atualizado com sucesso.');
+        } catch (Throwable $exception) {
+            Log::error('Erro ao atualizar pagamento da inscrição.', [
+                'evento_id' => $evento->id,
+                'inscricao_id' => $inscricao->id,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+
+            throw $exception;
+        }
+    }
+
     public function destroy(
         Evento $evento,
         InscricaoCursilho $inscricao,

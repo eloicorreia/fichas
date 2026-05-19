@@ -260,6 +260,10 @@ Route::prefix('secretaria')->group(function () {
                 Route::put('/{inscricao}', [EventoInscricaoController::class, 'update'])->name('update');
             });
 
+            Route::put('/{inscricao}/pagamento', [EventoInscricaoController::class, 'updatePagamento'])
+                ->middleware('permission:inscricao.payment')
+                ->name('pagamento.update');
+
             Route::delete('/{inscricao}', [EventoInscricaoController::class, 'destroy'])
                 ->middleware('permission:inscricao.delete')
                 ->name('destroy');

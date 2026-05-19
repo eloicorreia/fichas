@@ -17,6 +17,7 @@ return new class extends Migration
             'inscricao.update' => 'Alterar inscrições',
             'inscricao.delete' => 'Excluir inscrições',
             'inscricao.export' => 'Exportar inscrições',
+            'inscricao.payment' => 'Alterar pagamentos de inscrições',
         ];
 
         foreach ($permissions as $name => $label) {

@@ -50,10 +50,10 @@ class EventoInscricaoService
             abort(404);
         }
 
-        $inscricao->update([
+        $inscricao->forceFill([
             'pagamento_confirmado' => (bool) ($data['pagamento_confirmado'] ?? false),
             'pagamento_data' => $data['pagamento_data'] ?? null,
-        ]);
+        ])->save();
     }
 
     public function deleteForEvento(Evento $evento, InscricaoCursilho $inscricao): void
@@ -84,7 +84,7 @@ class EventoInscricaoService
             ]);
         }
 
-        Log::notice('Inscrição autorizada para exclusão física.', [
+        Log::notice('Inscrição autorizada para exclusão.', [
             'evento_id' => $evento->id,
             'inscricao_id' => $inscricao->id,
         ]);

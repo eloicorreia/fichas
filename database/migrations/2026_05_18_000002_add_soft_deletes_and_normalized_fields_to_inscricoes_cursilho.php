@@ -36,12 +36,11 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('inscricoes_cursilho', function (Blueprint $table): void {
-            $table->dropIndex('idx_inscricao_cursilho_cpf_normalizado');
-            $table->dropIndex('idx_inscricao_cursilho_telefone_normalizado');
-            $table->dropIndex('idx_inscricao_cursilho_nome_normalizado');
-            $table->dropColumn(['cpf_normalizado', 'telefone_normalizado', 'nome_normalizado']);
-            $table->dropSoftDeletes();
-        });
+        /*
+         * Não removemos deleted_at nem campos normalizados automaticamente.
+         * A reversão apagaria dados operacionais de exclusão lógica e busca.
+         * Se necessário, remova colunas e índices manualmente após avaliar
+         * o impacto sobre auditoria, restauração e consultas.
+         */
     }
 };

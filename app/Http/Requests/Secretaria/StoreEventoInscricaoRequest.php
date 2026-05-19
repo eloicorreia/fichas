@@ -48,13 +48,19 @@ class StoreEventoInscricaoRequest extends FormRequest
                         return;
                     }
 
-                    $exists = InscricaoCursilho::withTrashed()
+                    $duplicada = InscricaoCursilho::withTrashed()
                         ->where('evento_id', $evento?->id)
                         ->where('cpf_normalizado', $cpfNormalizado)
                         ->when($inscricao, fn ($query) => $query->whereKeyNot($inscricao->id))
-                        ->exists();
+                        ->first();
 
-                    if ($exists) {
+                    if ($duplicada?->trashed()) {
+                        $fail('Já existe uma inscrição excluída para este CPF neste evento. Restaure a inscrição existente antes de reutilizar o CPF.');
+
+                        return;
+                    }
+
+                    if ($duplicada !== null) {
                         $fail('Já existe uma inscrição para este CPF neste evento.');
                     }
                 },
@@ -83,8 +89,6 @@ class StoreEventoInscricaoRequest extends FormRequest
             'contato_familia_missa' => ['required', 'string'],
             'alimentacao_especial' => ['required', 'string'],
             'padrinho_madrinha_contato' => ['required', 'string'],
-            'pagamento_confirmado' => ['nullable', 'boolean'],
-            'pagamento_data' => ['nullable', 'date'],
         ];
     }
 }

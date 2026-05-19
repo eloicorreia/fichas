@@ -83,6 +83,12 @@ class PermissionSeeder extends Seeder
                 'active' => true,
             ],
             [
+                'name' => 'inscricao.payment',
+                'label' => 'Alterar pagamentos de inscrições',
+                'module' => 'inscricao',
+                'active' => true,
+            ],
+            [
                 'name' => 'usuario.view',
                 'label' => 'Visualizar usuários',
                 'module' => 'usuario',
@@ -172,6 +178,7 @@ class PermissionSeeder extends Seeder
                     'inscricao.update',
                     'inscricao.delete',
                     'inscricao.export',
+                    'inscricao.payment',
                     'usuario.view',
                 ])
             );

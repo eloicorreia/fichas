@@ -10,6 +10,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Mockery;
@@ -426,7 +427,7 @@ class SecretariaInscricoesTest extends TestCase
      */
     private function createInscricao(Evento $evento, array $attributes = []): InscricaoCursilho
     {
-        return InscricaoCursilho::query()->create(array_merge([
+        $payload = array_merge([
             'evento_id' => $evento->id,
             'tipo_evento' => $evento->tipo_evento,
             'publico_evento' => $evento->publico_evento,
@@ -450,6 +451,24 @@ class SecretariaInscricoesTest extends TestCase
             'alimentacao_especial' => 'Nenhuma',
             'padrinho_madrinha_contato' => 'Padrinho',
             'pagamento_confirmado' => false,
-        ], $attributes));
+        ], $attributes);
+
+        $inscricao = InscricaoCursilho::query()->create(Arr::except($payload, [
+            'pagamento_confirmado',
+            'pagamento_data',
+            'pagamento_comprovante_base64',
+        ]));
+
+        $protectedAttributes = Arr::only($payload, [
+            'pagamento_confirmado',
+            'pagamento_data',
+            'pagamento_comprovante_base64',
+        ]);
+
+        if ($protectedAttributes !== []) {
+            $inscricao->forceFill($protectedAttributes)->save();
+        }
+
+        return $inscricao;
     }
 }

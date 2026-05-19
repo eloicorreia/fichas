@@ -173,21 +173,6 @@
                     class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm">{{ old('quais_pastorais', $inscricao->quais_pastorais) }}</textarea>
             </div>
 
-            <div class="flex items-center gap-3 pt-8">
-                <input type="hidden" name="pagamento_confirmado" value="0">
-                <input type="checkbox" id="pagamento_confirmado" name="pagamento_confirmado" value="1"
-                    @checked((bool) old('pagamento_confirmado', $inscricao->pagamento_confirmado))
-                    class="h-4 w-4 rounded border-slate-300 text-sky-700">
-                <label for="pagamento_confirmado" class="text-sm font-medium text-slate-700">Pagamento confirmado</label>
-            </div>
-
-            <div>
-                <label class="mb-2 block text-sm font-semibold text-slate-700">Data do pagamento</label>
-                <input name="pagamento_data" type="date"
-                    value="{{ old('pagamento_data', optional($inscricao->pagamento_data)->format('Y-m-d')) }}"
-                    class="w-full rounded-2xl border border-slate-300 px-4 py-3 text-sm">
-            </div>
-
             <div class="lg:col-span-2">
                 <span class="mb-2 block text-sm font-semibold text-slate-700">Comprovante</span>
                 <p class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">

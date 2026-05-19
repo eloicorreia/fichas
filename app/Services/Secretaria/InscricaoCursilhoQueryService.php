@@ -78,10 +78,11 @@ class InscricaoCursilhoQueryService
                         ->orWhere('eventos.numero', 'like', $like);
 
                     if (is_string($digits) && $digits !== '') {
-                        $digitsLike = '%'.$digits.'%';
+                        if (strlen($digits) === 11) {
+                            $subQuery->orWhere('inscricoes_cursilho.cpf_normalizado', $digits);
+                        }
 
-                        $subQuery->orWhere('inscricoes_cursilho.cpf_normalizado', 'like', $digitsLike)
-                            ->orWhere('inscricoes_cursilho.telefone_normalizado', 'like', $digitsLike);
+                        $subQuery->orWhere('inscricoes_cursilho.telefone_normalizado', 'like', $digits.'%');
                     }
                 });
             })

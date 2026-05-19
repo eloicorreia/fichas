@@ -29,11 +29,9 @@ class InscricaoCursilho extends Model
         'aceitou_termo',
         'finalizada_em',
         'nome',
-        'nome_normalizado',
         'data_nascimento',
         'estado_civil',
         'cpf',
-        'cpf_normalizado',
         'data_casamento',
         'cidade_casou',
         'igreja_casou',
@@ -41,7 +39,6 @@ class InscricaoCursilho extends Model
         'numero_filhos',
         'profissao',
         'telefone',
-        'telefone_normalizado',
         'email',
         'grau_instrucao',
         'cep',
@@ -59,8 +56,6 @@ class InscricaoCursilho extends Model
         'contato_familia_missa',
         'alimentacao_especial',
         'padrinho_madrinha_contato',
-        'pagamento_confirmado',
-        'pagamento_data',
     ];
 
     protected function casts(): array
