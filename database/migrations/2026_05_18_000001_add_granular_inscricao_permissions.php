@@ -80,21 +80,17 @@ return new class extends Migration
     }
 
     /**
-     * Remove apenas vínculos de papéis, preservando permissões em produção.
+     * Preserva permissões e vínculos operacionais em produção.
      */
     public function down(): void
     {
-        $permissionIds = DB::table('permissions')
-            ->whereIn('name', [
-                'inscricao.create',
-                'inscricao.update',
-                'inscricao.delete',
-                'inscricao.export',
-            ])
-            ->pluck('id');
-
-        DB::table('permission_role')
-            ->whereIn('permission_id', $permissionIds)
-            ->delete();
+        /*
+         * Não removemos permissões nem vínculos automaticamente.
+         * Essas permissões podem estar em uso em produção e a remoção
+         * automática poderia revogar acessos configurados manualmente.
+         *
+         * Se necessário, remova permissões e vínculos manualmente após
+         * avaliar o impacto operacional.
+         */
     }
 };
