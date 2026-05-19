@@ -9,6 +9,7 @@ use App\Models\Evento;
 use App\Models\InscricaoCursilho;
 use App\Rules\CpfValido;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -596,20 +597,28 @@ class CursilhoController extends Controller
 
         $payload = $this->buildInscricaoPayload($evento, $wizard);
 
-        $inscricao = DB::transaction(function () use ($payload): ?InscricaoCursilho {
-            $cpfNormalizado = preg_replace('/\D+/', '', (string) ($payload['cpf'] ?? ''));
+        try {
+            $inscricao = DB::transaction(function () use ($payload): ?InscricaoCursilho {
+                $cpfNormalizado = preg_replace('/\D+/', '', (string) ($payload['cpf'] ?? ''));
 
-            $duplicada = InscricaoCursilho::withTrashed()
-                ->where('evento_id', $payload['evento_id'])
-                ->where('cpf_normalizado', $cpfNormalizado)
-                ->exists();
+                $duplicada = InscricaoCursilho::withTrashed()
+                    ->where('evento_id', $payload['evento_id'])
+                    ->where('cpf_normalizado', $cpfNormalizado)
+                    ->exists();
 
-            if ($duplicada) {
-                return null;
+                if ($duplicada) {
+                    return null;
+                }
+
+                return InscricaoCursilho::query()->create($payload);
+            });
+        } catch (QueryException $exception) {
+            if (! $this->isUniqueCpfConstraintViolation($exception)) {
+                throw $exception;
             }
 
-            return InscricaoCursilho::query()->create($payload);
-        });
+            $inscricao = null;
+        }
 
         if ($inscricao === null) {
             $wizard['data']['duplicidade_bloqueada'] = true;
@@ -973,6 +982,17 @@ class CursilhoController extends Controller
         }
 
         return $phone;
+    }
+
+    private function isUniqueCpfConstraintViolation(QueryException $exception): bool
+    {
+        $sqlState = (string) ($exception->errorInfo[0] ?? $exception->getCode());
+        $driverCode = (int) ($exception->errorInfo[1] ?? 0);
+        $message = $exception->getMessage();
+
+        return str_contains($message, 'uk_inscricoes_evento_cpf_normalizado')
+            || str_contains($message, 'inscricoes_cursilho.evento_id, inscricoes_cursilho.cpf_normalizado')
+            || ($sqlState === '23000' && in_array($driverCode, [0, 19, 1062], true));
     }
 
     private function forgetAllCursilhoWizards(Request $request): void

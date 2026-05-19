@@ -19,7 +19,7 @@ class PermissionController extends Controller
     public function index(): View
     {
         $q = trim((string) request('q', ''));
-        $status = request('status');
+        $status = (string) request('status', '');
         $module = trim((string) request('module', ''));
         $sort = (string) request('sort', 'module');
         $dir = strtolower((string) request('dir', 'asc')) === 'desc' ? 'desc' : 'asc';
@@ -45,8 +45,8 @@ class PermissionController extends Controller
                         ->orWhere('module', 'like', "%{$q}%");
                 });
             })
-            ->when($status !== null && $status !== '', function ($query) use ($status): void {
-                $query->where('active', (bool) $status);
+            ->when(in_array($status, ['0', '1'], true), function ($query) use ($status): void {
+                $query->where('active', $status === '1');
             })
             ->when($module !== '', function ($query) use ($module): void {
                 $query->where('module', $module);

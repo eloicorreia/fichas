@@ -8,6 +8,7 @@ use App\Mail\Fichas\CursilhoInscricaoInternaMail;
 use App\Mail\Fichas\CursilhoParticipanteMail;
 use App\Models\Evento;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
 use Tests\Feature\Concerns\CreatesSecretariaData;
@@ -360,6 +361,34 @@ class CursilhoPublicFlowTest extends TestCase
             'evento_id' => $evento->id,
             'nome' => 'Inscricao Concorrente',
             'cpf_normalizado' => '52998224725',
+        ]);
+    }
+
+    public function test_cursilho_trata_violacao_de_indice_unico_ao_finalizar(): void
+    {
+        Mail::fake();
+
+        $evento = $this->createEventoCursilho(['numero' => 7118]);
+        $this->completeCursilhoFlow($evento, [
+            'nome' => 'Candidato Race Cursilho',
+            'cpf' => '390.533.447-05',
+        ]);
+
+        DB::unprepared(<<<'SQL'
+            CREATE TRIGGER inscricoes_cursilho_race_cursilho
+            BEFORE INSERT ON inscricoes_cursilho
+            WHEN NEW.nome = 'CANDIDATO RACE CURSILHO'
+            BEGIN
+                SELECT RAISE(ABORT, 'UNIQUE constraint failed: inscricoes_cursilho.evento_id, inscricoes_cursilho.cpf_normalizado');
+            END;
+        SQL);
+
+        $this->post(route('cursilho.finalizar', ['publicoEvento' => 'homens', 'numero' => $evento->numero]))
+            ->assertRedirect(route('cursilho.inscricaoconfirmada', ['publicoEvento' => 'homens']));
+
+        $this->assertDatabaseMissing('inscricoes_cursilho', [
+            'evento_id' => $evento->id,
+            'cpf_normalizado' => '39053344705',
         ]);
     }
 

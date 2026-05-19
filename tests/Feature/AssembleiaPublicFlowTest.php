@@ -8,6 +8,7 @@ use App\Mail\Fichas\AssembleiaInscricaoInterna;
 use App\Mail\Fichas\AssembleiaParticipanteMail;
 use App\Models\Evento;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use RuntimeException;
 use Tests\Feature\Concerns\CreatesSecretariaData;
@@ -234,6 +235,38 @@ class AssembleiaPublicFlowTest extends TestCase
             'evento_id' => $evento->id,
             'nome' => 'Inscricao Concorrente Assembleia',
             'cpf_normalizado' => '52998224725',
+        ]);
+    }
+
+    public function test_assembleia_trata_violacao_de_indice_unico_ao_finalizar(): void
+    {
+        Mail::fake();
+
+        $evento = $this->createEventoAssembleia(['numero' => 8213]);
+        $this->completeAssembleiaFlow($evento, [
+            'nome' => 'Participante Race Assembleia',
+            'cpf' => '390.533.447-05',
+        ]);
+
+        DB::unprepared(<<<'SQL'
+            CREATE TRIGGER inscricoes_cursilho_race_assembleia
+            BEFORE INSERT ON inscricoes_cursilho
+            WHEN NEW.nome = 'PARTICIPANTE RACE ASSEMBLEIA'
+            BEGIN
+                SELECT RAISE(ABORT, 'UNIQUE constraint failed: inscricoes_cursilho.evento_id, inscricoes_cursilho.cpf_normalizado');
+            END;
+        SQL);
+
+        $this->from(route('assembleia.revisao', $evento->numero))
+            ->post(route('assembleia.finalizar', $evento->numero))
+            ->assertRedirect(route('assembleia.revisao', $evento->numero))
+            ->assertSessionHasErrors([
+                'cpf' => 'Já existe uma inscrição para este CPF neste evento.',
+            ]);
+
+        $this->assertDatabaseMissing('inscricoes_cursilho', [
+            'evento_id' => $evento->id,
+            'cpf_normalizado' => '39053344705',
         ]);
     }
 

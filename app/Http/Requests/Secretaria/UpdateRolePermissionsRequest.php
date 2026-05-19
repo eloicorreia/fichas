@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Secretaria;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateRolePermissionsRequest extends FormRequest
 {
@@ -20,7 +21,10 @@ class UpdateRolePermissionsRequest extends FormRequest
     {
         return [
             'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['integer', 'exists:permissions,id'],
+            'permissions.*' => [
+                'integer',
+                Rule::exists('permissions', 'id')->where('active', true),
+            ],
         ];
     }
 }

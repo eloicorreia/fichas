@@ -50,13 +50,16 @@ class EventoInscricaoService
             abort(404);
         }
 
+        $pagamentoConfirmado = (bool) ($data['pagamento_confirmado'] ?? false);
+
         $inscricao->forceFill([
-            'pagamento_confirmado' => (bool) ($data['pagamento_confirmado'] ?? false),
-            'pagamento_data' => (bool) ($data['pagamento_confirmado'] ?? false)
+            'pagamento_confirmado' => $pagamentoConfirmado,
+            'pagamento_data' => $pagamentoConfirmado
                 ? ($data['pagamento_data'] ?? null)
                 : null,
-            'pagamento_comprovante_base64' => $data['pagamento_comprovante_base64']
-                ?? $inscricao->pagamento_comprovante_base64,
+            'pagamento_comprovante_base64' => $pagamentoConfirmado
+                ? ($data['pagamento_comprovante_base64'] ?? $inscricao->pagamento_comprovante_base64)
+                : null,
         ])->save();
     }
 

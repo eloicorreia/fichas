@@ -271,6 +271,28 @@ class InscricaoCpfValidationTest extends TestCase
         $this->assertNull($inscricao->fresh()->pagamento_data);
     }
 
+    public function test_pagamento_pendente_limpa_comprovante(): void
+    {
+        $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
+        $evento = $this->createEvento();
+        $inscricao = $this->createInscricao($evento, [
+            'pagamento_confirmado' => true,
+            'pagamento_data' => now()->subDay()->toDateString(),
+            'pagamento_comprovante_base64' => 'data:application/pdf;base64,comprovante-antigo',
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('secretaria.eventos.inscricoes.pagamento.update', [$evento, $inscricao]), [
+                'pagamento_confirmado' => false,
+                'pagamento_data' => now()->toDateString(),
+            ])
+            ->assertRedirect(route('secretaria.eventos.inscricoes.index', $evento));
+
+        $this->assertFalse($inscricao->fresh()->pagamento_confirmado);
+        $this->assertNull($inscricao->fresh()->pagamento_data);
+        $this->assertNull($inscricao->fresh()->pagamento_comprovante_base64);
+    }
+
     public function test_pagamento_data_futura_falha(): void
     {
         $user = $this->userWithPermissions(['inscricao.view', 'inscricao.payment']);
